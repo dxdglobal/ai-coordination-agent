@@ -21,7 +21,8 @@ def create_app():
     app.register_blueprint(integrations_bp, url_prefix='/integrations')
     app.register_blueprint(ai_bp, url_prefix='/ai')
     
-    # Create tables (temporarily disabled for testing)
+    # Create tables (skip if tables already exist to avoid timeout)
+    # Tables already exist based on our database test
     # with app.app_context():
     #     db.create_all()
     

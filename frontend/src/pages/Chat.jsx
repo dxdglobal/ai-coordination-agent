@@ -82,10 +82,10 @@ const Chat = () => {
       type: 'database'
     },
     {
-      label: 'Integration Stats',
-      prompt: 'How many integrations do we have and from which platforms?',
+      label: 'AI Providers',
+      prompt: 'Show me available AI providers and their status',
       icon: <AutoAwesome />,
-      type: 'database'
+      type: 'providers'
     }
   ]
 
@@ -122,57 +122,33 @@ const Chat = () => {
     setIsAnalyzing(true)
 
     try {
-      // Determine if this is a database analytics question
-      const isDatabaseQuery = inputMessage.toLowerCase().includes('how many') ||
-                             inputMessage.toLowerCase().includes('total') ||
-                             inputMessage.toLowerCase().includes('database') ||
-                             inputMessage.toLowerCase().includes('tables') ||
-                             inputMessage.toLowerCase().includes('stats') ||
-                             inputMessage.toLowerCase().includes('analytics') ||
-                             inputMessage.toLowerCase().includes('completion rate') ||
-                             inputMessage.toLowerCase().includes('breakdown')
-
-      let response
-      if (isDatabaseQuery) {
-        // Use database analytics endpoint
-        response = await fetch('http://localhost:5000/ai/database-analytics', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ query: inputMessage })
-        })
-        
-        if (!response.ok) {
-          throw new Error('Failed to get database analytics')
-        }
-        
-        const result = await response.json()
-        
-        const aiMessage = {
-          id: Date.now() + 1,
-          text: result.answer,
-          sender: 'ai',
-          timestamp: new Date(),
-          type: 'database-analytics',
-          data: result.database_stats
-        }
-        
-        setMessages(prev => [...prev, aiMessage])
-      } else {
-        // Use regular AI chat endpoint
-        response = await aiAPI.chat(inputMessage)
-        
-        const aiMessage = {
-          id: Date.now() + 1,
-          text: response.response,
-          sender: 'ai',
-          timestamp: new Date(),
-          type: 'response'
-        }
-
-        setMessages(prev => [...prev, aiMessage])
+      // Use the new smart chat endpoint that automatically routes queries
+      const response = await fetch('http://localhost:5000/ai/smart-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query: inputMessage })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to get AI response')
       }
+      
+      const result = await response.json()
+      
+      const aiMessage = {
+        id: Date.now() + 1,
+        text: result.response,
+        sender: 'ai',
+        timestamp: new Date(),
+        type: result.type,
+        data: result.data,
+        intent_analysis: result.intent_analysis,
+        provider_used: result.provider_used
+      }
+      
+      setMessages(prev => [...prev, aiMessage])
     } catch (err) {
       console.error('Error:', err)
       const errorMessage = {
@@ -203,88 +179,75 @@ const Chat = () => {
     setMessages(prev => [...prev, userMessage])
 
     try {
-      if (prompt.type === 'database') {
-        // Use database analytics endpoint
-        const response = await fetch('http://localhost:5000/ai/database-analytics', {
-          method: 'POST',
+      if (prompt.type === 'providers') {
+        // Special handling for AI providers query
+        const response = await fetch('http://localhost:5000/ai/providers', {
+          method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ query: prompt.prompt })
+          }
         })
         
         if (!response.ok) {
-          throw new Error('Failed to get database analytics')
+          throw new Error('Failed to get AI providers')
         }
         
         const result = await response.json()
         
-        const aiMessage = {
-          id: Date.now() + 1,
-          text: result.answer,
-          sender: 'ai',
-          timestamp: new Date(),
-          type: 'database-analytics',
-          data: result.database_stats
-        }
-        
-        setMessages(prev => [...prev, aiMessage])
-      } else if (prompt.type === 'search') {
-        // Use search endpoint
-        const response = await fetch('http://localhost:5000/ai/search', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ query: prompt.prompt })
+        let providersText = `Available AI Providers:\n\n`
+        result.providers.forEach(provider => {
+          providersText += `🤖 ${provider.credential_name}\n`
+          providersText += `   Type: ${provider.credential_type}\n`
+          providersText += `   Model: ${provider.model}\n`
+          providersText += `   Status: ${provider.status}\n`
+          providersText += `   Environment: ${provider.environment}\n\n`
         })
-        
-        if (!response.ok) {
-          throw new Error('Failed to perform search')
-        }
-        
-        const result = await response.json()
+        providersText += `Default Provider: ${result.default_provider}`
         
         const aiMessage = {
           id: Date.now() + 1,
-          text: result.ai_insights?.summary || 'Search completed',
+          text: providersText,
           sender: 'ai',
           timestamp: new Date(),
-          type: 'search-results',
+          type: 'providers-info',
           data: result
         }
         
         setMessages(prev => [...prev, aiMessage])
-      } else if (prompt.type === 'analysis' || prompt.type === 'followup') {
-        const analysis = await aiAPI.analyze(prompt.prompt)
-        
-        const aiMessage = {
-          id: Date.now() + 1,
-          text: formatAnalysisResponse(analysis),
-          sender: 'ai',
-          timestamp: new Date(),
-          type: 'analysis',
-          data: analysis
-        }
-
-        setMessages(prev => [...prev, aiMessage])
       } else {
-        const response = await aiAPI.chat(prompt.prompt)
+        // Use smart chat for all other prompts
+        const response = await fetch('http://localhost:5000/ai/smart-chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query: prompt.prompt })
+        })
+        
+        if (!response.ok) {
+          throw new Error('Failed to get AI response')
+        }
+        
+        const result = await response.json()
         
         const aiMessage = {
           id: Date.now() + 1,
-          text: response.response,
+          text: result.response,
           sender: 'ai',
           timestamp: new Date(),
-          type: 'response'
+          type: result.type,
+          data: result.data,
+          intent_analysis: result.intent_analysis,
+          provider_used: result.provider_used
         }
-
+        
         setMessages(prev => [...prev, aiMessage])
       }
     } catch (err) {
+      console.error('Error:', err)
       const errorMessage = {
         id: Date.now() + 1,
-        text: 'Sorry, I encountered an error during analysis. Please try again.',
+        text: 'Sorry, I encountered an error processing your request. Please try again.',
         sender: 'ai',
         timestamp: new Date(),
         type: 'error'
@@ -366,6 +329,19 @@ const Chat = () => {
             <Typography variant="body2" sx={{ fontWeight: 600, color: '#ffffff' }}>
               {isAI ? 'AI Agent' : 'You'}
             </Typography>
+            {message.provider_used && (
+              <Chip 
+                label={message.provider_used} 
+                size="small" 
+                variant="outlined"
+                sx={{ 
+                  height: 20, 
+                  fontSize: '0.7rem',
+                  color: '#888888', 
+                  borderColor: '#444444' 
+                }}
+              />
+            )}
             <Typography variant="caption" sx={{ color: '#888888' }}>
               {formatTimestamp(message.timestamp)}
             </Typography>
