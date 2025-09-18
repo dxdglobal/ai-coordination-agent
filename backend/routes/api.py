@@ -1,10 +1,11 @@
 from flask import Blueprint, request, jsonify
-from app import db
-from models import Project, Task, Comment, Label, TaskLabel, TaskStatus, Priority
 from datetime import datetime
 from sqlalchemy import or_
 
 api_bp = Blueprint('api', __name__)
+
+# Import here to avoid circular imports
+from models.models import db, Project, Task, Comment, Label, TaskLabel, TaskStatus, Priority
 
 # Projects endpoints
 @api_bp.route('/projects', methods=['GET'])

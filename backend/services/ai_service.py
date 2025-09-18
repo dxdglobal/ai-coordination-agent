@@ -1,6 +1,5 @@
 import openai
-from models import Task, Project, Comment, AIAction, TaskStatus, Priority
-from app import db
+from models.models import db, Task, Project, Comment, AIAction, TaskStatus, Priority
 from datetime import datetime, timedelta
 from sqlalchemy import func
 from config import Config

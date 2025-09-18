@@ -8,6 +8,9 @@ import {
   Avatar,
   InputAdornment,
   Tooltip,
+  Paper,
+  CircularProgress,
+  Divider,
 } from '@mui/material'
 import {
   Send,
@@ -20,6 +23,9 @@ import {
   Lightbulb,
   Mic,
   AttachFile,
+  Storage,
+  Analytics,
+  BarChart,
 } from '@mui/icons-material'
 import { useAPI } from '../context/APIContext'
 
@@ -34,28 +40,52 @@ const Chat = () => {
 
   const predefinedPrompts = [
     {
-      label: 'Analyze Workspace',
-      prompt: 'You are a coordination agent, analyze all tasks and projects and provide insights.',
-      icon: <Psychology />,
-      type: 'analysis'
+      label: 'Database Stats',
+      prompt: 'How many tables are in the database?',
+      icon: <Storage />,
+      type: 'database'
     },
     {
-      label: 'Follow Up Tasks',
-      prompt: 'You are a coordination agent, follow up all tasks and projects that need attention.',
-      icon: <Assignment />,
-      type: 'followup'
-    },
-    {
-      label: 'Status Overview',
-      prompt: 'Give me a detailed status overview of all projects and tasks.',
+      label: 'Total Projects',
+      prompt: 'How many total projects do we have?',
       icon: <Folder />,
-      type: 'overview'
+      type: 'database'
     },
     {
-      label: 'Suggest Improvements',
-      prompt: 'Analyze the current workflow and suggest improvements for better coordination.',
+      label: 'Total Tasks',
+      prompt: 'Show me total tasks and their breakdown by status',
+      icon: <Assignment />,
+      type: 'database'
+    },
+    {
+      label: 'Analytics Overview',
+      prompt: 'Give me a complete analytics overview of all data',
+      icon: <Analytics />,
+      type: 'database'
+    },
+    {
+      label: 'Task Completion',
+      prompt: 'What is the task completion rate?',
+      icon: <BarChart />,
+      type: 'database'
+    },
+    {
+      label: 'Search Projects',
+      prompt: 'Search for projects and tasks',
+      icon: <Psychology />,
+      type: 'search'
+    },
+    {
+      label: 'Recent Activity',
+      prompt: 'Show me recent activity and latest updates',
       icon: <Lightbulb />,
-      type: 'improvement'
+      type: 'database'
+    },
+    {
+      label: 'Integration Stats',
+      prompt: 'How many integrations do we have and from which platforms?',
+      icon: <AutoAwesome />,
+      type: 'database'
     }
   ]
 
@@ -92,18 +122,59 @@ const Chat = () => {
     setIsAnalyzing(true)
 
     try {
-      const response = await aiAPI.chat(inputMessage)
-      
-      const aiMessage = {
-        id: Date.now() + 1,
-        text: response.response,
-        sender: 'ai',
-        timestamp: new Date(),
-        type: 'response'
-      }
+      // Determine if this is a database analytics question
+      const isDatabaseQuery = inputMessage.toLowerCase().includes('how many') ||
+                             inputMessage.toLowerCase().includes('total') ||
+                             inputMessage.toLowerCase().includes('database') ||
+                             inputMessage.toLowerCase().includes('tables') ||
+                             inputMessage.toLowerCase().includes('stats') ||
+                             inputMessage.toLowerCase().includes('analytics') ||
+                             inputMessage.toLowerCase().includes('completion rate') ||
+                             inputMessage.toLowerCase().includes('breakdown')
 
-      setMessages(prev => [...prev, aiMessage])
+      let response
+      if (isDatabaseQuery) {
+        // Use database analytics endpoint
+        response = await fetch('http://localhost:5000/ai/database-analytics', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query: inputMessage })
+        })
+        
+        if (!response.ok) {
+          throw new Error('Failed to get database analytics')
+        }
+        
+        const result = await response.json()
+        
+        const aiMessage = {
+          id: Date.now() + 1,
+          text: result.answer,
+          sender: 'ai',
+          timestamp: new Date(),
+          type: 'database-analytics',
+          data: result.database_stats
+        }
+        
+        setMessages(prev => [...prev, aiMessage])
+      } else {
+        // Use regular AI chat endpoint
+        response = await aiAPI.chat(inputMessage)
+        
+        const aiMessage = {
+          id: Date.now() + 1,
+          text: response.response,
+          sender: 'ai',
+          timestamp: new Date(),
+          type: 'response'
+        }
+
+        setMessages(prev => [...prev, aiMessage])
+      }
     } catch (err) {
+      console.error('Error:', err)
       const errorMessage = {
         id: Date.now() + 1,
         text: 'Sorry, I encountered an error processing your request. Please try again.',
@@ -132,7 +203,59 @@ const Chat = () => {
     setMessages(prev => [...prev, userMessage])
 
     try {
-      if (prompt.type === 'analysis' || prompt.type === 'followup') {
+      if (prompt.type === 'database') {
+        // Use database analytics endpoint
+        const response = await fetch('http://localhost:5000/ai/database-analytics', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query: prompt.prompt })
+        })
+        
+        if (!response.ok) {
+          throw new Error('Failed to get database analytics')
+        }
+        
+        const result = await response.json()
+        
+        const aiMessage = {
+          id: Date.now() + 1,
+          text: result.answer,
+          sender: 'ai',
+          timestamp: new Date(),
+          type: 'database-analytics',
+          data: result.database_stats
+        }
+        
+        setMessages(prev => [...prev, aiMessage])
+      } else if (prompt.type === 'search') {
+        // Use search endpoint
+        const response = await fetch('http://localhost:5000/ai/search', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query: prompt.prompt })
+        })
+        
+        if (!response.ok) {
+          throw new Error('Failed to perform search')
+        }
+        
+        const result = await response.json()
+        
+        const aiMessage = {
+          id: Date.now() + 1,
+          text: result.ai_insights?.summary || 'Search completed',
+          sender: 'ai',
+          timestamp: new Date(),
+          type: 'search-results',
+          data: result
+        }
+        
+        setMessages(prev => [...prev, aiMessage])
+      } else if (prompt.type === 'analysis' || prompt.type === 'followup') {
         const analysis = await aiAPI.analyze(prompt.prompt)
         
         const aiMessage = {
@@ -258,6 +381,101 @@ const Chat = () => {
           >
             {message.text}
           </Typography>
+          
+          {/* Display database analytics data if available */}
+          {message.type === 'database-analytics' && message.data && (
+            <Box sx={{ mt: 2 }}>
+              <Paper 
+                sx={{ 
+                  p: 2, 
+                  backgroundColor: '#1a1a1a', 
+                  border: '1px solid #333333',
+                  maxWidth: '100%',
+                  overflow: 'auto'
+                }}
+              >
+                <Typography variant="h6" sx={{ color: '#ffffff', mb: 2 }}>
+                  📊 Database Statistics
+                </Typography>
+                
+                {message.data.application_tables && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" sx={{ color: '#bbbbbb', mb: 1 }}>
+                      📋 Application Data:
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      <Chip 
+                        label={`Projects: ${message.data.application_tables.projects}`} 
+                        variant="outlined" 
+                        size="small"
+                        sx={{ color: '#ffffff', borderColor: '#555555' }}
+                      />
+                      <Chip 
+                        label={`Tasks: ${message.data.application_tables.tasks}`} 
+                        variant="outlined" 
+                        size="small"
+                        sx={{ color: '#ffffff', borderColor: '#555555' }}
+                      />
+                      <Chip 
+                        label={`Comments: ${message.data.application_tables.comments}`} 
+                        variant="outlined" 
+                        size="small"
+                        sx={{ color: '#ffffff', borderColor: '#555555' }}
+                      />
+                      <Chip 
+                        label={`Labels: ${message.data.application_tables.labels}`} 
+                        variant="outlined" 
+                        size="small"
+                        sx={{ color: '#ffffff', borderColor: '#555555' }}
+                      />
+                      <Chip 
+                        label={`Integrations: ${message.data.application_tables.integrations}`} 
+                        variant="outlined" 
+                        size="small"
+                        sx={{ color: '#ffffff', borderColor: '#555555' }}
+                      />
+                    </Box>
+                  </Box>
+                )}
+                
+                {message.data.task_analysis && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" sx={{ color: '#bbbbbb', mb: 1 }}>
+                      ✅ Task Analysis:
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#cccccc', mb: 1 }}>
+                      Completion Rate: {message.data.task_analysis.completion_rate?.toFixed(1)}%
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {Object.entries(message.data.task_analysis.by_status || {}).map(([status, count]) => (
+                        <Chip 
+                          key={status}
+                          label={`${status.replace('_', ' ')}: ${count}`} 
+                          variant="outlined" 
+                          size="small"
+                          sx={{ color: '#ffffff', borderColor: '#555555' }}
+                        />
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+                
+                {message.data.total_tables && (
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ color: '#bbbbbb', mb: 1 }}>
+                      🗄️ Database Info:
+                    </Typography>
+                    <Chip 
+                      label={`Total Tables: ${message.data.total_tables}`} 
+                      variant="outlined" 
+                      size="small"
+                      sx={{ color: '#ffffff', borderColor: '#555555' }}
+                    />
+                  </Box>
+                )}
+              </Paper>
+            </Box>
+          )}
         </Box>
       </Box>
     )

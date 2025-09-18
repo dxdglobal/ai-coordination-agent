@@ -1,12 +1,70 @@
 from flask import Blueprint, request, jsonify
-from app import db
-from models import Task, Project, Comment, AIAction, TaskStatus, Priority
-from services.ai_service import AICoordinationService
 from datetime import datetime
 
 ai_bp = Blueprint('ai', __name__)
 
+# Import here to avoid circular imports
+from models.models import db, Task, Project, Comment, AIAction, TaskStatus, Priority
+from services.ai_service import AICoordinationService
+from services.deepseek_service import DeepseekService
+
 ai_service = AICoordinationService()
+deepseek_service = DeepseekService()
+
+@ai_bp.route('/database-analytics', methods=['POST'])
+def database_analytics():
+    """
+    Answer database analytics questions using AI
+    Examples: "How many tables?", "Total projects?", "Show me stats"
+    """
+    data = request.get_json()
+    query = data.get('query', '')
+    
+    if not query:
+        return jsonify({'error': 'Query is required'}), 400
+    
+    try:
+        result = deepseek_service.database_analytics(query)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@ai_bp.route('/search', methods=['POST'])
+def intelligent_search():
+    """
+    Intelligent search using Deepseek AI across all project data
+    """
+    data = request.get_json()
+    query = data.get('query', '')
+    limit = data.get('limit', 20)
+    
+    if not query:
+        return jsonify({'error': 'Search query is required'}), 400
+    
+    try:
+        results = deepseek_service.intelligent_search(query, limit)
+        return jsonify(results)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@ai_bp.route('/search/chat', methods=['POST'])
+def search_chat():
+    """
+    Follow-up questions about search results
+    """
+    data = request.get_json()
+    query = data.get('query', '')
+    results = data.get('results', [])
+    follow_up = data.get('follow_up', '')
+    
+    if not query or not follow_up:
+        return jsonify({'error': 'Query and follow-up question are required'}), 400
+    
+    try:
+        response = deepseek_service.chat_about_results(query, results, follow_up)
+        return jsonify({'response': response})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @ai_bp.route('/analyze', methods=['POST'])
 def analyze_tasks():

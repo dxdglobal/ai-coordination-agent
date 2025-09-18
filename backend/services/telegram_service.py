@@ -122,7 +122,7 @@ You can also send messages to interact with the AI coordination agent.
     def _send_status_update(self, chat_id):
         """Send project status to Telegram"""
         try:
-            from models import Project, Task, TaskStatus
+            from models.models import Project, Task, TaskStatus
             
             projects = Project.query.count()
             total_tasks = Task.query.count()
@@ -149,7 +149,7 @@ You can also send messages to interact with the AI coordination agent.
     def _send_tasks_overview(self, chat_id):
         """Send tasks overview to Telegram"""
         try:
-            from models import Task, TaskStatus, Priority
+            from models.models import Task, TaskStatus, Priority
             
             high_priority_tasks = Task.query.filter_by(priority=Priority.HIGH).count()
             urgent_tasks = Task.query.filter_by(priority=Priority.URGENT).count()
@@ -175,7 +175,7 @@ Use /status for complete overview.
     def _send_projects_list(self, chat_id):
         """Send projects list to Telegram"""
         try:
-            from models import Project
+            from models.models import Project
             
             projects = Project.query.limit(10).all()
             
@@ -200,8 +200,7 @@ Use /status for complete overview.
             if not task_title:
                 return self.send_message(chat_id, "Please provide a task title. Usage: /create_task [title]")
             
-            from models import Task
-            from app import db
+            from models.models import db, Task
             
             task = Task(
                 title=task_title,

@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from urllib.parse import quote_plus
 
 load_dotenv()
 
@@ -10,9 +11,11 @@ class Config:
     DATABASE_TYPE = os.environ.get('DATABASE_TYPE', 'sqlite')
     
     if DATABASE_TYPE == 'postgresql':
-        SQLALCHEMY_DATABASE_URI = f"postgresql://{os.environ.get('DB_USER')}:{os.environ.get('DB_PASSWORD')}@{os.environ.get('DB_HOST')}/{os.environ.get('DB_NAME')}"
+        password = quote_plus(os.environ.get('DB_PASSWORD', ''))
+        SQLALCHEMY_DATABASE_URI = f"postgresql://{os.environ.get('DB_USER')}:{password}@{os.environ.get('DB_HOST')}:{os.environ.get('DB_PORT', 5432)}/{os.environ.get('DB_NAME')}"
     elif DATABASE_TYPE == 'mysql':
-        SQLALCHEMY_DATABASE_URI = f"mysql+mysqlconnector://{os.environ.get('DB_USER')}:{os.environ.get('DB_PASSWORD')}@{os.environ.get('DB_HOST')}/{os.environ.get('DB_NAME')}"
+        password = quote_plus(os.environ.get('DB_PASSWORD', ''))
+        SQLALCHEMY_DATABASE_URI = f"mysql+mysqlconnector://{os.environ.get('DB_USER')}:{password}@{os.environ.get('DB_HOST')}:{os.environ.get('DB_PORT', 3306)}/{os.environ.get('DB_NAME')}"
     else:
         SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///project_management.db'
     

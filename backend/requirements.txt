@@ -9,7 +9,6 @@ twilio==8.10.3
 yagmail==0.15.293
 pydub==0.25.1
 SpeechRecognition==3.10.0
-pytelegrambot==0.1.0
 python-telegram-bot==20.7
 SQLAlchemy==2.0.23
 psycopg2-binary==2.9.9

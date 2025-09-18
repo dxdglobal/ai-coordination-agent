@@ -77,7 +77,7 @@ Available commands:
             
             elif command == 'status':
                 # Get project status and send it
-                from models import Project, Task, TaskStatus
+                from models.models import Project, Task, TaskStatus
                 projects = Project.query.count()
                 total_tasks = Task.query.count()
                 completed_tasks = Task.query.filter_by(status=TaskStatus.DONE).count()

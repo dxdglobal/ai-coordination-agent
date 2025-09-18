@@ -1,7 +1,10 @@
-from app import db
+from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from enum import Enum
 from sqlalchemy import Enum as SQLEnum
+
+# Create db instance here to avoid circular imports
+db = SQLAlchemy()
 
 class TaskStatus(Enum):
     TODO = "todo"
@@ -151,7 +154,7 @@ class Integration(db.Model):
     sender = db.Column(db.String(100))
     recipient = db.Column(db.String(100))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    metadata = db.Column(db.JSON)  # Store additional platform-specific data
+    meta_data = db.Column(db.JSON)  # Store additional platform-specific data
     
     # Optional link to task/project
     task_id = db.Column(db.Integer, db.ForeignKey('tasks.id'), nullable=True)
@@ -166,7 +169,7 @@ class Integration(db.Model):
             'sender': self.sender,
             'recipient': self.recipient,
             'created_at': self.created_at.isoformat() if self.created_at else None,
-            'metadata': self.metadata,
+            'metadata': self.meta_data,
             'task_id': self.task_id,
             'project_id': self.project_id
         }

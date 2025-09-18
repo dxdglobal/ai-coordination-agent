@@ -1,13 +1,14 @@
 from flask import Blueprint, request, jsonify
+
+integrations_bp = Blueprint('integrations', __name__)
+
+# Import here to avoid circular imports
 from services.zendesk_service import ZendeskService
 from services.whatsapp_service import WhatsAppService
 from services.telegram_service import TelegramService
 from services.email_service import EmailService
 from services.voice_service import VoiceService
-from models import Integration
-from app import db
-
-integrations_bp = Blueprint('integrations', __name__)
+from models.models import db, Integration
 
 zendesk_service = ZendeskService()
 whatsapp_service = WhatsAppService()
