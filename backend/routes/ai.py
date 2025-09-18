@@ -7,9 +7,105 @@ ai_bp = Blueprint('ai', __name__)
 from models.models import db, Task, Project, Comment, AIAction, TaskStatus, Priority
 from services.ai_service import AICoordinationService
 from services.deepseek_service import DeepseekService
+from services.ai_provider_service import AIProviderService
 
 ai_service = AICoordinationService()
 deepseek_service = DeepseekService()
+ai_provider_service = AIProviderService()
+
+@ai_bp.route('/providers', methods=['GET'])
+def list_ai_providers():
+    """
+    List all configured AI providers
+    """
+    try:
+        providers = ai_provider_service.list_providers()
+        return jsonify({
+            'providers': providers,
+            'default_provider': ai_provider_service.default_provider
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@ai_bp.route('/providers/<provider_name>/test', methods=['POST'])
+def test_ai_provider(provider_name):
+    """
+    Test a specific AI provider
+    """
+    try:
+        result = ai_provider_service.test_provider(provider_name)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@ai_bp.route('/providers/<provider_name>/switch', methods=['POST'])
+def switch_ai_provider(provider_name):
+    """
+    Switch the default AI provider
+    """
+    try:
+        success = ai_provider_service.switch_provider(provider_name)
+        if success:
+            return jsonify({
+                'message': f'Switched to provider: {provider_name}',
+                'default_provider': ai_provider_service.default_provider
+            })
+        else:
+            return jsonify({'error': f'Provider {provider_name} not available'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@ai_bp.route('/smart-chat', methods=['POST'])
+def smart_chat():
+    """
+    Smart chat that automatically routes to appropriate AI provider and service
+    """
+    data = request.get_json()
+    query = data.get('query', '')
+    provider = data.get('provider')  # Optional: specify provider
+    
+    if not query:
+        return jsonify({'error': 'Query is required'}), 400
+    
+    try:
+        # Analyze query intent
+        intent_analysis = ai_provider_service.analyze_query_intent(query, provider)
+        
+        # Route based on intent
+        if intent_analysis['query_type'] == 'database_analytics':
+            # Use database analytics service
+            result = deepseek_service.database_analytics(query)
+            return jsonify({
+                'response': result['answer'],
+                'type': 'database_analytics',
+                'intent_analysis': intent_analysis,
+                'data': result.get('database_stats'),
+                'provider_used': provider or ai_provider_service.default_provider
+            })
+        
+        elif intent_analysis['query_type'] == 'search':
+            # Use search service
+            search_result = deepseek_service.intelligent_search(query)
+            return jsonify({
+                'response': search_result.get('ai_insights', {}).get('summary', 'Search completed'),
+                'type': 'search_results',
+                'intent_analysis': intent_analysis,
+                'data': search_result,
+                'provider_used': provider or ai_provider_service.default_provider
+            })
+        
+        else:
+            # Use general smart response
+            response = ai_provider_service.generate_smart_response(query, provider_name=provider)
+            return jsonify({
+                'response': response,
+                'type': 'general_chat',
+                'intent_analysis': intent_analysis,
+                'provider_used': provider or ai_provider_service.default_provider
+            })
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @ai_bp.route('/database-analytics', methods=['POST'])
 def database_analytics():

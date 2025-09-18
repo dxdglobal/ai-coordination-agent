@@ -21,9 +21,9 @@ def create_app():
     app.register_blueprint(integrations_bp, url_prefix='/integrations')
     app.register_blueprint(ai_bp, url_prefix='/ai')
     
-    # Create tables
-    with app.app_context():
-        db.create_all()
+    # Create tables (temporarily disabled for testing)
+    # with app.app_context():
+    #     db.create_all()
     
     return app
 

@@ -27,6 +27,22 @@ class Config:
     ZENDESK_DOMAIN = os.environ.get('ZENDESK_DOMAIN')
     ZENDESK_EMAIL = os.environ.get('ZENDESK_EMAIL')
     
+    # AI Provider Configurations
+    AI_PROVIDERS = {
+        "openai_primary": {
+            "credential_name": "Main OpenAI Config",
+            "credential_type": "openai",
+            "description": "OpenAI API configuration",
+            "openai_api_key": "sk-b9f603a0e4a448efa936d1c1484fd108",
+            "openai_model": "gpt-4",
+            "openai_organization": None,
+            "environment": "production"
+        }
+    }
+    
+    # Default AI Provider
+    DEFAULT_AI_PROVIDER = "openai_primary"
+    
     # WhatsApp/Twilio
     TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
     TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
