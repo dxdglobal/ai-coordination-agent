@@ -10,7 +10,7 @@ class DeepseekService:
         # Configure for OpenAI API (the key was actually OpenAI, not Deepseek)
         try:
             self.client = openai.OpenAI(
-                api_key="sk-b9f603a0e4a448efa936d1c1484fd108"
+                api_key="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"
             )
             self.api_available = True
         except Exception as e:

@@ -33,7 +33,7 @@ class Config:
             "credential_name": "Main OpenAI Config",
             "credential_type": "openai",
             "description": "OpenAI API configuration",
-            "openai_api_key": "sk-b9f603a0e4a448efa936d1c1484fd108",
+            "openai_api_key": "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",
             "openai_model": "gpt-4",
             "openai_organization": None,
             "environment": "production"
