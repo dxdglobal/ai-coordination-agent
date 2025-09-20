@@ -123,12 +123,12 @@ const Chat = () => {
 
     try {
       // Use the new smart chat endpoint that automatically routes queries
-      const response = await fetch('http://localhost:5000/ai/smart-chat', {
+      const response = await fetch('http://localhost:5001/ai/smart_chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ query: inputMessage })
+        body: JSON.stringify({ message: inputMessage })
       })
       
       if (!response.ok) {
@@ -181,7 +181,7 @@ const Chat = () => {
     try {
       if (prompt.type === 'providers') {
         // Special handling for AI providers query
-        const response = await fetch('http://localhost:5000/ai/providers', {
+        const response = await fetch('http://localhost:5001/ai/providers', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -216,12 +216,12 @@ const Chat = () => {
         setMessages(prev => [...prev, aiMessage])
       } else {
         // Use smart chat for all other prompts
-        const response = await fetch('http://localhost:5000/ai/smart-chat', {
+        const response = await fetch('http://localhost:5001/ai/smart_chat', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ query: prompt.prompt })
+          body: JSON.stringify({ message: prompt.prompt })
         })
         
         if (!response.ok) {

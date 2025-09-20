@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard'
 import Projects from './pages/Projects'
 import Tasks from './pages/Tasks'
 import Chat from './pages/Chat'
+import RLChat from './pages/RLChat'
 import Integrations from './pages/Integrations'
 import { APIProvider } from './context/APIContext'
 
@@ -82,6 +83,7 @@ function App() {
             <GrokNavigation />
             <Routes>
               <Route path="/" element={<Chat />} />
+              <Route path="/rl-chat" element={<RLChat />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/projects" element={<Projects />} />
               <Route path="/tasks" element={<Tasks />} />

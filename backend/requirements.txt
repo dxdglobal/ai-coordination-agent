@@ -15,3 +15,8 @@ psycopg2-binary==2.9.9
 mysql-connector-python==8.2.0
 marshmallow==3.20.1
 marshmallow-sqlalchemy==0.29.0
+
+# Vector Database Dependencies
+chromadb==0.4.18
+numpy==1.24.3
+sentence-transformers==2.2.2

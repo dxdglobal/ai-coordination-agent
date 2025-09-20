@@ -201,3 +201,79 @@ class AIAction(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'executed_at': self.executed_at.isoformat() if self.executed_at else None
         }
+
+class ConversationHistory(db.Model):
+    __tablename__ = 'conversation_history'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.String(100))  # Track conversation sessions
+    user_query = db.Column(db.Text, nullable=False)
+    ai_response = db.Column(db.Text, nullable=False)
+    query_type = db.Column(db.String(50))  # database_analytics, person_search, general_chat
+    response_time_ms = db.Column(db.Integer)  # Response time in milliseconds
+    confidence_score = db.Column(db.Float)  # AI confidence in response
+    data_sources_used = db.Column(db.JSON)  # Which tables/sources were queried
+    user_satisfaction = db.Column(db.Integer)  # User rating (1-5), optional
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'session_id': self.session_id,
+            'user_query': self.user_query,
+            'ai_response': self.ai_response,
+            'query_type': self.query_type,
+            'response_time_ms': self.response_time_ms,
+            'confidence_score': self.confidence_score,
+            'data_sources_used': self.data_sources_used,
+            'user_satisfaction': self.user_satisfaction,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+class PromptTemplate(db.Model):
+    __tablename__ = 'prompt_templates'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    category = db.Column(db.String(50))  # analytics, person_search, task_management
+    template = db.Column(db.Text, nullable=False)  # The prompt template with placeholders
+    usage_count = db.Column(db.Integer, default=0)
+    success_rate = db.Column(db.Float, default=0.0)  # Based on user satisfaction
+    last_used = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'category': self.category,
+            'template': self.template,
+            'usage_count': self.usage_count,
+            'success_rate': self.success_rate,
+            'last_used': self.last_used.isoformat() if self.last_used else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+class AILearningPattern(db.Model):
+    __tablename__ = 'ai_learning_patterns'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    query_pattern = db.Column(db.String(200), nullable=False)  # Pattern like "is {person} there"
+    response_template = db.Column(db.Text, nullable=False)
+    confidence_threshold = db.Column(db.Float, default=0.8)
+    times_matched = db.Column(db.Integer, default=0)
+    success_rate = db.Column(db.Float, default=0.0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'query_pattern': self.query_pattern,
+            'response_template': self.response_template,
+            'confidence_threshold': self.confidence_threshold,
+            'times_matched': self.times_matched,
+            'success_rate': self.success_rate,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }

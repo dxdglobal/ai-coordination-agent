@@ -10,7 +10,20 @@ def create_app():
     # Initialize extensions
     from models.models import db
     db.init_app(app)
-    CORS(app)
+    
+    # Configure CORS with specific settings
+    CORS(app, resources={
+        r"/ai/*": {
+            "origins": ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "http://127.0.0.1:5174"],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"]
+        },
+        r"/api/*": {
+            "origins": ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "http://127.0.0.1:5174"],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"]
+        }
+    })
     
     # Register blueprints
     from routes.api import api_bp
@@ -28,6 +41,8 @@ def create_app():
     
     return app
 
+# Create app instance for imports
+app = create_app()
+
 if __name__ == '__main__':
-    app = create_app()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=False, host='127.0.0.1', port=5001)

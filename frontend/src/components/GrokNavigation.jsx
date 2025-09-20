@@ -22,6 +22,7 @@ import {
   SmartToy,
   Settings,
   Help,
+  Psychology,
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 
@@ -32,6 +33,7 @@ const GrokNavigation = () => {
 
   const menuItems = [
     { title: 'AI Chat', path: '/', icon: <SmartToy /> },
+    { title: 'RL Chat', path: '/rl-chat', icon: <Psychology /> },
     { title: 'Dashboard', path: '/dashboard', icon: <Dashboard /> },
     { title: 'Projects', path: '/projects', icon: <Folder /> },
     { title: 'Tasks', path: '/tasks', icon: <Assignment /> },
