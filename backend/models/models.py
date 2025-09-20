@@ -67,6 +67,7 @@ class Task(db.Model):
     
     # Foreign Keys
     project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=True)
+    assigned_to = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=True)
     
     # Relationships
     comments = db.relationship('Comment', backref='task', lazy=True, cascade='all, delete-orphan')
@@ -86,6 +87,8 @@ class Task(db.Model):
             'estimated_hours': self.estimated_hours,
             'actual_hours': self.actual_hours,
             'assignee': self.assignee,
+            'assigned_to': self.assigned_to,
+            'assigned_employee_name': self.assigned_employee.name if self.assigned_employee else None,
             'project_id': self.project_id,
             'project_name': self.project.name if self.project else None,
             'labels': [label.to_dict() for label in self.labels],
@@ -276,4 +279,84 @@ class AILearningPattern(db.Model):
             'success_rate': self.success_rate,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+class Employee(db.Model):
+    __tablename__ = 'employees'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    phone = db.Column(db.String(20))
+    department = db.Column(db.String(50))
+    position = db.Column(db.String(100))
+    salary = db.Column(db.Float)
+    hire_date = db.Column(db.DateTime, default=datetime.utcnow)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Self-referencing relationship for manager
+    manager_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=True)
+    manager = db.relationship('Employee', remote_side=[id], backref='subordinates')
+    
+    # Relationships
+    assigned_tasks = db.relationship('Task', backref='assigned_employee', lazy=True)
+    assigned_invoices = db.relationship('Invoice', backref='assigned_employee', lazy=True)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'email': self.email,
+            'phone': self.phone,
+            'department': self.department,
+            'position': self.position,
+            'salary': self.salary,
+            'hire_date': self.hire_date.isoformat() if self.hire_date else None,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'manager_id': self.manager_id,
+            'manager_name': self.manager.name if self.manager else None,
+            'subordinate_count': len(self.subordinates),
+            'assigned_task_count': len(self.assigned_tasks),
+            'assigned_invoice_count': len(self.assigned_invoices)
+        }
+
+class Invoice(db.Model):
+    __tablename__ = 'invoices'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    invoice_number = db.Column(db.String(50), unique=True, nullable=False)
+    client_name = db.Column(db.String(100), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    tax_amount = db.Column(db.Float, default=0.0)
+    total_amount = db.Column(db.Float, nullable=False)
+    status = db.Column(db.String(20), default='pending')  # pending, paid, overdue, cancelled
+    invoice_date = db.Column(db.DateTime, default=datetime.utcnow)
+    due_date = db.Column(db.DateTime)
+    paid_date = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Foreign Keys
+    assigned_to = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=True)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'invoice_number': self.invoice_number,
+            'client_name': self.client_name,
+            'amount': self.amount,
+            'tax_amount': self.tax_amount,
+            'total_amount': self.total_amount,
+            'status': self.status,
+            'invoice_date': self.invoice_date.isoformat() if self.invoice_date else None,
+            'due_date': self.due_date.isoformat() if self.due_date else None,
+            'paid_date': self.paid_date.isoformat() if self.paid_date else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'assigned_to': self.assigned_to,
+            'assigned_employee_name': self.assigned_employee.name if self.assigned_employee else None
         }
