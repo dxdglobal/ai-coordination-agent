@@ -139,6 +139,95 @@ export const APIProvider = ({ children }) => {
         setLoading(false)
       }
     },
+
+    // Semantic Search Methods
+    semanticSearch: async (query, limit = 10, filters = {}) => {
+      setLoading(true)
+      try {
+        const response = await apiClient.post('/api/tasks/search/semantic', {
+          query,
+          limit,
+          filters
+        })
+        setError(null)
+        return response.data
+      } catch (err) {
+        setError(err.response?.data?.error || 'Semantic search failed')
+        throw err
+      } finally {
+        setLoading(false)
+      }
+    },
+
+    getHighPriorityTasks: async () => {
+      setLoading(true)
+      try {
+        const response = await apiClient.get('/api/tasks/search/high-priority')
+        setError(null)
+        return response.data
+      } catch (err) {
+        setError(err.response?.data?.error || 'Failed to fetch high priority tasks')
+        throw err
+      } finally {
+        setLoading(false)
+      }
+    },
+
+    getOverdueTasks: async () => {
+      setLoading(true)
+      try {
+        const response = await apiClient.get('/api/tasks/search/overdue')
+        setError(null)
+        return response.data
+      } catch (err) {
+        setError(err.response?.data?.error || 'Failed to fetch overdue tasks')
+        throw err
+      } finally {
+        setLoading(false)
+      }
+    },
+
+    searchByAssignee: async (assignee, query = '', limit = 10) => {
+      setLoading(true)
+      try {
+        const response = await apiClient.get(`/api/tasks/search/assignee/${assignee}?query=${encodeURIComponent(query)}&limit=${limit}`)
+        setError(null)
+        return response.data
+      } catch (err) {
+        setError(err.response?.data?.error || 'Failed to search tasks by assignee')
+        throw err
+      } finally {
+        setLoading(false)
+      }
+    },
+
+    searchByProject: async (projectName, query = '', limit = 10) => {
+      setLoading(true)
+      try {
+        const response = await apiClient.get(`/api/tasks/search/project/${encodeURIComponent(projectName)}?query=${encodeURIComponent(query)}&limit=${limit}`)
+        setError(null)
+        return response.data
+      } catch (err) {
+        setError(err.response?.data?.error || 'Failed to search tasks by project')
+        throw err
+      } finally {
+        setLoading(false)
+      }
+    },
+
+    getVectorStats: async () => {
+      setLoading(true)
+      try {
+        const response = await apiClient.get('/api/vector/stats')
+        setError(null)
+        return response.data
+      } catch (err) {
+        setError(err.response?.data?.error || 'Failed to fetch vector stats')
+        throw err
+      } finally {
+        setLoading(false)
+      }
+    },
   }
 
   // Projects API

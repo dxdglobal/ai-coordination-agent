@@ -1,0 +1,152 @@
+2025-09-25 18:40:45,288 - INFO - ============================================================
+2025-09-25 18:40:45,293 - INFO -    • Checks every 10 minutes (like periodic check-ins)
+2025-09-25 18:40:45,294 - INFO -    • 24-hour comment cooldown (no spam)
+2025-09-25 18:40:45,294 - INFO -    • Smart urgency-based commenting
+2025-09-25 18:40:45,295 - INFO -    • Working hours awareness
+2025-09-25 18:40:45,295 - INFO -    • Natural human-like variability
+2025-09-25 18:40:45,296 - INFO - ============================================================
+2025-09-25 18:40:46,504 - ERROR - Error fetching tasks: 1054 (42S22): Unknown column 't.taskid' in 'SELECT'
+2025-09-25 18:40:46,522 - INFO - Press Ctrl+C to stop the monitor
+2025-09-25 18:43:07,681 - INFO - ============================================================
+2025-09-25 18:43:07,685 - INFO -    • Checks every 10 minutes (like periodic check-ins)
+2025-09-25 18:43:07,685 - INFO -    • 24-hour comment cooldown (no spam)
+2025-09-25 18:43:07,686 - INFO -    • Smart urgency-based commenting
+2025-09-25 18:43:07,687 - INFO -    • Working hours awareness
+2025-09-25 18:43:07,687 - INFO -    • Natural human-like variability
+2025-09-25 18:43:07,688 - INFO - ============================================================
+2025-09-25 18:43:08,619 - ERROR - Error fetching tasks: 1054 (42S22): Unknown column 't.taskid' in 'SELECT'
+2025-09-25 18:43:08,635 - INFO - Press Ctrl+C to stop the monitor
+2025-09-28 23:33:31,920 - INFO - ============================================================
+2025-09-28 23:33:31,922 - INFO -    • Checks every 10 minutes (like periodic check-ins)
+2025-09-28 23:33:31,923 - INFO -    • 24-hour comment cooldown (no spam)
+2025-09-28 23:33:31,923 - INFO -    • Smart urgency-based commenting
+2025-09-28 23:33:31,923 - INFO -    • Working hours awareness
+2025-09-28 23:33:31,923 - INFO -    • Natural human-like variability
+2025-09-28 23:33:31,924 - INFO - ============================================================
+2025-09-28 23:33:32,890 - ERROR - Error fetching tasks: 1054 (42S22): Unknown column 't.completiondate' in 'ORDER BY'
+2025-09-28 23:33:32,897 - INFO - Press Ctrl+C to stop the monitor
+2025-09-28 23:36:40,218 - INFO - ============================================================
+2025-09-28 23:36:40,220 - INFO -    • Checks every 10 minutes (like periodic check-ins)
+2025-09-28 23:36:40,221 - INFO -    • 24-hour comment cooldown (no spam)
+2025-09-28 23:36:40,221 - INFO -    • Smart urgency-based commenting
+2025-09-28 23:36:40,221 - INFO -    • Working hours awareness
+2025-09-28 23:36:40,221 - INFO -    • Natural human-like variability
+2025-09-28 23:36:40,221 - INFO - ============================================================
+2025-09-28 23:36:41,146 - ERROR - Error fetching tasks: 1054 (42S22): Unknown column 't.completiondate' in 'ORDER BY'
+2025-09-28 23:36:41,152 - INFO - Press Ctrl+C to stop the monitor
+2025-09-28 23:38:08,333 - INFO - HUMAN-LIKE TASK MONITOR STARTING
+2025-09-28 23:38:08,333 - INFO - ============================================================
+2025-09-28 23:38:08,333 - INFO - Mimicking human manager behavior:
+2025-09-28 23:38:08,333 - INFO -    • Checks every 10 minutes (like periodic check-ins)
+2025-09-28 23:38:08,334 - INFO -    • 24-hour comment cooldown (no spam)
+2025-09-28 23:38:08,334 - INFO -    • Smart urgency-based commenting
+2025-09-28 23:38:08,334 - INFO -    • Working hours awareness
+2025-09-28 23:38:08,335 - INFO -    • Natural human-like variability
+2025-09-28 23:38:08,335 - INFO - ============================================================
+2025-09-28 23:38:08,335 - INFO - Running initial task check...
+2025-09-28 23:38:08,336 - INFO - Human-like check #1 at 23:38:08
+2025-09-28 23:38:09,181 - ERROR - Error fetching tasks: 1054 (42S22): Unknown column 't.completiondate' in 'ORDER BY'
+2025-09-28 23:38:09,185 - INFO - Check complete: 0 new comments | 0 tasks monitored | Working hours: NO
+2025-09-28 23:38:09,185 - INFO - Monitor scheduled every 10 minutes. Running continuously...
+2025-09-28 23:38:09,186 - INFO - Press Ctrl+C to stop the monitor
+2025-09-28 23:40:48,543 - INFO - HUMAN-LIKE TASK MONITOR STARTING
+2025-09-28 23:40:48,543 - INFO - ============================================================
+2025-09-28 23:40:48,543 - INFO - Mimicking human manager behavior:
+2025-09-28 23:40:48,544 - INFO -    • Checks every 10 minutes (like periodic check-ins)
+2025-09-28 23:40:48,544 - INFO -    • 24-hour comment cooldown (no spam)
+2025-09-28 23:40:48,544 - INFO -    • Smart urgency-based commenting
+2025-09-28 23:40:48,545 - INFO -    • Working hours awareness
+2025-09-28 23:40:48,545 - INFO -    • Natural human-like variability
+2025-09-28 23:40:48,545 - INFO - ============================================================
+2025-09-28 23:40:48,545 - INFO - Running initial task check...
+2025-09-28 23:40:48,546 - INFO - Skipping this check cycle (human-like behavior)
+2025-09-28 23:40:48,546 - INFO - Monitor scheduled every 10 minutes. Running continuously...
+2025-09-28 23:40:48,546 - INFO - Press Ctrl+C to stop the monitor
+2025-09-28 23:43:36,251 - INFO - HUMAN-LIKE TASK MONITOR STARTING
+2025-09-28 23:43:36,251 - INFO - ============================================================
+2025-09-28 23:43:36,251 - INFO - Mimicking human manager behavior:
+2025-09-28 23:43:36,251 - INFO -    • Checks every 10 minutes (like periodic check-ins)
+2025-09-28 23:43:36,252 - INFO -    • 24-hour comment cooldown (no spam)
+2025-09-28 23:43:36,252 - INFO -    • Smart urgency-based commenting
+2025-09-28 23:43:36,252 - INFO -    • Working hours awareness
+2025-09-28 23:43:36,252 - INFO -    • Natural human-like variability
+2025-09-28 23:43:36,253 - INFO - ============================================================
+2025-09-28 23:43:36,253 - INFO - Running initial task check...
+2025-09-28 23:43:36,253 - INFO - Human-like check #1 at 23:43:36
+2025-09-28 23:43:37,108 - ERROR - Error fetching tasks: 1054 (42S22): Unknown column 't.completiondate' in 'ORDER BY'
+2025-09-28 23:43:37,111 - INFO - Check complete: 0 new comments | 0 tasks monitored | Working hours: NO
+2025-09-28 23:43:37,112 - INFO - Monitor scheduled every 10 minutes. Running continuously...
+2025-09-28 23:43:37,112 - INFO - Press Ctrl+C to stop the monitor
+2025-09-28 23:44:02,491 - INFO - HUMAN-LIKE TASK MONITOR STARTING
+2025-09-28 23:44:02,491 - INFO - ============================================================
+2025-09-28 23:44:02,491 - INFO - Mimicking human manager behavior:
+2025-09-28 23:44:02,491 - INFO -    • Checks every 10 minutes (like periodic check-ins)
+2025-09-28 23:44:02,491 - INFO -    • 24-hour comment cooldown (no spam)
+2025-09-28 23:44:02,491 - INFO -    • Smart urgency-based commenting
+2025-09-28 23:44:02,492 - INFO -    • Working hours awareness
+2025-09-28 23:44:02,492 - INFO -    • Natural human-like variability
+2025-09-28 23:44:02,492 - INFO - ============================================================
+2025-09-28 23:44:02,492 - INFO - Running initial task check...
+2025-09-28 23:44:02,493 - INFO - Human-like check #1 at 23:44:02
+2025-09-28 23:44:20,664 - INFO - Commented on task 1658 (User Staff): User, we need to address this overdue task urgentl...
+2025-09-28 23:44:25,255 - INFO - Commented on task 1702 (User Staff): User, this deadline has passed. Let's work togethe...
+2025-09-28 23:44:40,230 - INFO - Commented on task 1522 (User Staff): Hi User! This delay is concerning. Can we chat abo...
+2025-09-28 23:44:46,975 - INFO - Commented on task 1523 (User Staff): User, we need to address this overdue task urgentl...
+2025-09-28 23:44:53,170 - INFO - Commented on task 1524 (User Staff): User, this deadline has passed. Let's work togethe...
+2025-09-28 23:45:09,626 - INFO - Commented on task 1765 (User Staff): Hi User! This delay is concerning. Can we chat abo...
+2025-09-28 23:45:12,354 - INFO - Commented on task 1809 (User Staff): User, we need to address this overdue task urgentl...
+2025-09-28 23:45:25,332 - INFO - Commented on task 1826 (User Staff): User, we need to address this overdue task urgentl...
+2025-09-28 23:45:30,861 - INFO - Commented on task 1829 (User Staff): User, we need to address this overdue task urgentl...
+2025-09-28 23:45:47,063 - INFO - Commented on task 1776 (User Staff): Hi User! This delay is concerning. Can we chat abo...
+2025-09-28 23:45:51,138 - INFO - Commented on task 1824 (User Staff): Hi User! This delay is concerning. Can we chat abo...
+2025-09-28 23:45:59,114 - INFO - Commented on task 1828 (User Staff): User, we need to address this overdue task urgentl...
+2025-09-28 23:46:11,545 - INFO - Check complete: 25 new comments | 369 tasks monitored | Working hours: NO
+2025-09-28 23:46:11,545 - INFO - Monitor scheduled every 10 minutes. Running continuously...
+2025-09-28 23:46:11,545 - INFO - Press Ctrl+C to stop the monitor
+2025-09-28 23:53:37,126 - INFO - Human-like check #2 at 23:53:37
+2025-09-28 23:53:37,912 - ERROR - Error fetching tasks: 1054 (42S22): Unknown column 't.completiondate' in 'ORDER BY'
+2025-09-28 23:53:37,916 - INFO - Check complete: 0 new comments | 0 tasks monitored | Working hours: NO
+2025-09-28 23:56:22,095 - INFO - HUMAN-LIKE TASK MONITOR STARTING
+2025-09-28 23:56:22,096 - INFO - ============================================================
+2025-09-28 23:56:22,096 - INFO - Mimicking human manager behavior:
+2025-09-28 23:56:22,096 - INFO -    • Checks every 10 minutes (like periodic check-ins)
+2025-09-28 23:56:22,096 - INFO -    • 24-hour comment cooldown (no spam)
+2025-09-28 23:56:22,096 - INFO -    • Smart urgency-based commenting
+2025-09-28 23:56:22,096 - INFO -    • Working hours awareness
+2025-09-28 23:56:22,097 - INFO -    • Natural human-like variability
+2025-09-28 23:56:22,097 - INFO - ============================================================
+2025-09-28 23:56:22,097 - INFO - Running initial task check...
+2025-09-28 23:56:22,098 - INFO - Human-like check #1 at 23:56:22
+2025-09-28 23:57:51,333 - INFO - Check complete: 0 new comments | 369 tasks monitored | Working hours: NO
+2025-09-28 23:57:51,334 - INFO - Monitor scheduled every 10 minutes. Running continuously...
+2025-09-28 23:57:51,334 - INFO - Press Ctrl+C to stop the monitor
+2025-09-29 00:03:37,928 - INFO - Human-like check #3 at 00:03:37
+2025-09-29 00:03:38,734 - ERROR - Error fetching tasks: 1054 (42S22): Unknown column 't.completiondate' in 'ORDER BY'
+2025-09-29 00:03:38,739 - INFO - Check complete: 0 new comments | 0 tasks monitored | Working hours: NO
+2025-09-29 00:04:19,685 - INFO - HUMAN-LIKE TASK MONITOR STARTING
+2025-09-29 00:04:19,685 - INFO - ============================================================
+2025-09-29 00:04:19,686 - INFO - Mimicking human manager behavior:
+2025-09-29 00:04:19,688 - INFO -    • Checks every 10 minutes (like periodic check-ins)
+2025-09-29 00:04:19,688 - INFO -    • 24-hour comment cooldown (no spam)
+2025-09-29 00:04:19,689 - INFO -    • Smart urgency-based commenting
+2025-09-29 00:04:19,689 - INFO -    • Working hours awareness
+2025-09-29 00:04:19,690 - INFO -    • Natural human-like variability
+2025-09-29 00:04:19,691 - INFO - ============================================================
+2025-09-29 00:04:19,692 - INFO - Running initial task check...
+2025-09-29 00:04:19,693 - INFO - Human-like check #1 at 00:04:19
+2025-09-29 00:05:52,255 - INFO - Check complete: 0 new comments | 369 tasks monitored | Working hours: NO
+2025-09-29 00:05:52,256 - INFO - Monitor scheduled every 10 minutes. Running continuously...
+2025-09-29 00:05:52,256 - INFO - Press Ctrl+C to stop the monitor
+2025-09-29 00:21:07,087 - INFO - HUMAN-LIKE TASK MONITOR STARTING
+2025-09-29 00:21:07,087 - INFO - ============================================================
+2025-09-29 00:21:07,087 - INFO - Mimicking human manager behavior:
+2025-09-29 00:21:07,089 - INFO -    • Checks every 10 minutes (like periodic check-ins)
+2025-09-29 00:21:07,089 - INFO -    • 24-hour comment cooldown (no spam)
+2025-09-29 00:21:07,089 - INFO -    • Smart urgency-based commenting
+2025-09-29 00:21:07,089 - INFO -    • Working hours awareness
+2025-09-29 00:21:07,089 - INFO -    • Natural human-like variability
+2025-09-29 00:21:07,089 - INFO - ============================================================
+2025-09-29 00:21:07,089 - INFO - Running initial task check...
+2025-09-29 00:21:07,089 - INFO - Skipping this check cycle (human-like behavior)
+2025-09-29 00:21:07,089 - INFO - Monitor scheduled every 10 minutes. Running continuously...
+2025-09-29 00:21:07,089 - INFO - Press Ctrl+C to stop the monitor

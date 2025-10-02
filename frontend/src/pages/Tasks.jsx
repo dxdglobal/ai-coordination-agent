@@ -30,6 +30,9 @@ import {
   Divider,
   LinearProgress,
   Autocomplete,
+  Tabs,
+  Tab,
+  Paper,
 } from '@mui/material'
 import {
   Add,
@@ -46,11 +49,14 @@ import {
   PlayArrow,
   Pause,
   Block,
+  Psychology,
+  FilterList,
 } from '@mui/icons-material'
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
 import { useAPI } from '../context/APIContext'
+import SemanticSearch from '../components/SemanticSearch'
 
 const Tasks = () => {
   const { taskAPI, projectAPI, loading, error, setError } = useAPI()
@@ -63,6 +69,7 @@ const Tasks = () => {
   const [selectedTask, setSelectedTask] = useState(null)
   const [comments, setComments] = useState({})
   const [newComment, setNewComment] = useState('')
+  const [currentTab, setCurrentTab] = useState(0) // 0 = Traditional View, 1 = Semantic Search
   const [filters, setFilters] = useState({
     project_id: '',
     status: '',
@@ -292,8 +299,32 @@ const Tasks = () => {
           </Alert>
         )}
 
-        {/* Filters */}
-        <Card sx={{ mb: 3 }}>
+        {/* Tabs for Traditional vs Semantic Search */}
+        <Paper sx={{ mb: 3 }}>
+          <Tabs 
+            value={currentTab} 
+            onChange={(e, newValue) => setCurrentTab(newValue)}
+            indicatorColor="primary"
+            textColor="primary"
+          >
+            <Tab 
+              icon={<FilterList />} 
+              label="Traditional Search" 
+              iconPosition="start"
+            />
+            <Tab 
+              icon={<Psychology />} 
+              label="Semantic Search" 
+              iconPosition="start"
+            />
+          </Tabs>
+        </Paper>
+
+        {/* Tab Content */}
+        {currentTab === 0 && (
+          <>
+            {/* Filters */}
+            <Card sx={{ mb: 3 }}>
           <CardContent>
             <Typography variant="h6" gutterBottom>Filters</Typography>
             <Grid container spacing={2}>
@@ -521,6 +552,110 @@ const Tasks = () => {
             )
           })}
         </Grid>
+          </>
+        )}
+
+        {/* Semantic Search Tab */}
+        {currentTab === 1 && (
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <SemanticSearch 
+                onTaskSelect={(task) => {
+                  // When a task is selected from semantic search, show it in detail
+                  setSelectedTask(task)
+                  setAnchorEl(null) // This will trigger the task detail view
+                }} 
+                maxHeight="calc(100vh - 300px)"
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              {selectedTask ? (
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      Selected Task Details
+                    </Typography>
+                    <Typography variant="h5" gutterBottom>
+                      {selectedTask.title}
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary" paragraph>
+                      {selectedTask.description || 'No description available'}
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+                      <Chip
+                        label={selectedTask.status?.replace('_', ' ') || 'Unknown'}
+                        color={getStatusInfo(selectedTask.status)?.color || 'default'}
+                      />
+                      <Chip
+                        label={selectedTask.priority || 'Medium'}
+                        color={getPriorityInfo(selectedTask.priority)?.color || 'default'}
+                        variant="outlined"
+                      />
+                      {selectedTask.assignee && (
+                        <Chip
+                          icon={<Person />}
+                          label={selectedTask.assignee}
+                          variant="outlined"
+                        />
+                      )}
+                      {selectedTask.project_name && (
+                        <Chip
+                          label={selectedTask.project_name}
+                          variant="outlined"
+                          color="secondary"
+                        />
+                      )}
+                    </Box>
+                    <Box sx={{ mt: 2 }}>
+                      <Button
+                        variant="contained"
+                        startIcon={<Edit />}
+                        onClick={() => {
+                          setEditingTask(selectedTask)
+                          setFormData({
+                            title: selectedTask.title || '',
+                            description: selectedTask.description || '',
+                            status: selectedTask.status || 'todo',
+                            priority: selectedTask.priority || 'medium',
+                            project_id: selectedTask.project_id || '',
+                            assignee: selectedTask.assignee || '',
+                            start_time: selectedTask.start_time ? new Date(selectedTask.start_time) : null,
+                            end_time: selectedTask.end_time ? new Date(selectedTask.end_time) : null,
+                            estimated_hours: selectedTask.estimated_hours || '',
+                            actual_hours: selectedTask.actual_hours || '',
+                          })
+                          setOpenDialog(true)
+                        }}
+                        sx={{ mr: 1 }}
+                      >
+                        Edit Task
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        onClick={() => setSelectedTask(null)}
+                      >
+                        Clear Selection
+                      </Button>
+                    </Box>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent sx={{ textAlign: 'center', py: 8 }}>
+                    <Psychology sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                    <Typography variant="h6" color="text.secondary" gutterBottom>
+                      Select a task from semantic search
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Use the semantic search panel to find tasks with natural language,
+                      then click on a result to see details here.
+                    </Typography>
+                  </CardContent>
+                </Card>
+              )}
+            </Grid>
+          </Grid>
+        )}
 
         {/* Task Dialog */}
         <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>

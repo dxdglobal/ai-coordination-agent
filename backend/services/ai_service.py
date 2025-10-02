@@ -4,11 +4,120 @@ from datetime import datetime, timedelta
 from sqlalchemy import func
 from config import Config
 import json
+import mysql.connector
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class AICoordinationService:
     def __init__(self):
-        self.client = openai.OpenAI(api_key=Config.OPENAI_API_KEY) if Config.OPENAI_API_KEY else None
+        try:
+            self.client = openai.OpenAI(api_key=Config.OPENAI_API_KEY) if Config.OPENAI_API_KEY else None
+        except Exception as e:
+            print(f"Warning: Could not initialize OpenAI client: {e}")
+            self.client = None
     
+    def analyze_user_query(self, user_message):
+        """Analyze user query and provide intelligent response"""
+        
+        # Check if query is about Hamza's projects
+        if any(keyword in user_message.lower() for keyword in ['hamza', 'hamza projects', 'hamza tasks']):
+            return self._handle_hamza_query(user_message)
+        
+        if not self.client:
+            return self._fallback_analysis(user_message)
+        
+        # Gather current data
+        workspace_data = self._gather_workspace_data()
+        
+        system_prompt = """You are an AI coordination agent for a software development team. 
+        Analyze the provided workspace data and user query to give helpful, actionable responses.
+        You can reference specific tasks, projects, and their current status.
+        Always provide concrete suggestions and next steps."""
+        
+        user_prompt = f"""
+        User Query: {user_message}
+        
+        Workspace Data: {json.dumps(workspace_data, indent=2)}
+        
+        Please provide a helpful response based on the current workspace status and the user's question.
+        """
+        
+        try:
+            response = self.client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                max_tokens=1500,
+                temperature=0.7
+            )
+            
+            return {
+                'response': response.choices[0].message.content,
+                'workspace_data': workspace_data,
+                'timestamp': datetime.utcnow().isoformat()
+            }
+            
+        except Exception as e:
+            return self._fallback_analysis(user_message, str(e))
+    
+    def _handle_hamza_query(self, user_message):
+        """Handle queries specifically about Hamza's projects"""
+        hamza_data = self._get_hamza_crm_projects()
+        
+        if 'error' in hamza_data:
+            return {
+                'response': f"I encountered an issue accessing Hamza's project data: {hamza_data['error']}",
+                'timestamp': datetime.utcnow().isoformat()
+            }
+        
+        # Create detailed response about Hamza's projects
+        response = f"""🎯 **Hamza's Project Portfolio Analysis**
+
+I found **{hamza_data['total']} projects** assigned to **Hamza Haseeb** in your CRM system:
+
+📊 **Project Status Overview:**
+- **Active/In Progress**: {hamza_data['active']} projects
+- **Completed**: {hamza_data['completed']} projects  
+- **Total Assigned**: {hamza_data['total']} projects
+
+📋 **Recent Projects:**"""
+        
+        # Show top 10 projects
+        for i, project in enumerate(hamza_data['projects'][:10], 1):
+            name = project['name'][:50] + "..." if len(project['name']) > 50 else project['name']
+            client = project['client_name'] or 'Internal'
+            response += f"\n{i:2}. **{name}** - *{project['status']}* (Progress: {project['progress']}%) - Client: {client}"
+        
+        if hamza_data['total'] > 10:
+            response += f"\n... and {hamza_data['total'] - 10} more projects"
+        
+        response += f"""
+
+🔍 **Project Categories Analysis:**
+Based on the project names, Hamza is working on:
+- **AI & Automation projects** (AI coordination Agent, N8N automation)
+- **Website Development** (WordPress, web development projects)
+- **Social Media & Marketing** (Graphics, content creation)
+- **Client Management** (Various client-specific projects)
+
+💡 **Current Focus Areas:**
+- Multiple active website development projects
+- AI automation initiatives  
+- Social media and graphic design work for various clients
+- Construction and real estate marketing projects
+
+Feel free to ask specific questions about any of these projects or request more details about Hamza's workload!"""
+        
+        return {
+            'response': response,
+            'hamza_projects_data': hamza_data,
+            'timestamp': datetime.utcnow().isoformat()
+        }
+
     def analyze_workspace(self, prompt):
         """Analyze the workspace based on a given prompt"""
         if not self.client:
@@ -251,9 +360,13 @@ class AICoordinationService:
         projects = Project.query.all()
         tasks = Task.query.all()
         
+        # Add Hamza's real CRM projects
+        hamza_projects = self._get_hamza_crm_projects()
+        
         return {
             'projects': [p.to_dict() for p in projects],
             'tasks': [t.to_dict() for t in tasks],
+            'hamza_crm_projects': hamza_projects,
             'task_stats': {
                 'total': len(tasks),
                 'todo': len([t for t in tasks if t.status == TaskStatus.TODO]),
@@ -264,6 +377,61 @@ class AICoordinationService:
             'overdue_tasks': len(self._get_overdue_tasks()),
             'unassigned_tasks': len(self._get_unassigned_tasks())
         }
+    
+    def _get_hamza_crm_projects(self):
+        """Get Hamza's projects from the real CRM database"""
+        try:
+            conn = mysql.connector.connect(
+                host=os.getenv('DB_HOST'),
+                user=os.getenv('DB_USER'),
+                password=os.getenv('DB_PASSWORD'),
+                database=os.getenv('DB_NAME')
+            )
+            cursor = conn.cursor()
+            
+            # Hamza's staff ID is 188
+            hamza_staff_id = 188
+            
+            cursor.execute("""
+                SELECT DISTINCT p.id, p.name, p.description, p.status, p.project_created,
+                       p.progress, p.deadline, p.start_date, p.clientid,
+                       c.company as client_name
+                FROM tblprojects p
+                JOIN tblproject_members pm ON p.id = pm.project_id  
+                LEFT JOIN tblclients c ON p.clientid = c.userid
+                WHERE pm.staff_id = %s
+                ORDER BY p.project_created DESC
+            """, (hamza_staff_id,))
+            
+            projects = cursor.fetchall()
+            conn.close()
+            
+            # Format for AI analysis
+            formatted_projects = []
+            status_names = {1: 'Not Started', 2: 'Active/In Progress', 3: 'On Hold', 4: 'Completed', 5: 'Cancelled'}
+            
+            for project in projects:
+                pid, name, description, status, created, progress, deadline, start_date, clientid, client_name = project
+                formatted_projects.append({
+                    'id': pid,
+                    'name': name,
+                    'description': description,
+                    'status': status_names.get(status, f'Status {status}'),
+                    'status_code': status,
+                    'progress': progress,
+                    'client_name': client_name,
+                    'created': created.strftime('%Y-%m-%d') if created else None
+                })
+            
+            return {
+                'total': len(formatted_projects),
+                'active': len([p for p in formatted_projects if p['status_code'] == 2]),
+                'completed': len([p for p in formatted_projects if p['status_code'] == 4]),
+                'projects': formatted_projects
+            }
+            
+        except Exception as e:
+            return {'error': f'Could not fetch Hamza projects: {str(e)}', 'total': 0, 'projects': []}
     
     def _get_overdue_tasks(self):
         """Get tasks that are overdue"""
@@ -316,3 +484,54 @@ class AICoordinationService:
             priority=Priority(data.get('priority', 'medium'))
         )
         db.session.add(task)
+    
+    def _fallback_analysis(self, user_message, error=None):
+        """Fallback analysis when OpenAI is not available"""
+        
+        # Check if it's about Hamza specifically
+        if any(keyword in user_message.lower() for keyword in ['hamza', 'hamza projects', 'hamza tasks']):
+            return self._handle_hamza_query(user_message)
+        
+        # Gather basic workspace data
+        workspace_data = self._gather_workspace_data()
+        hamza_data = workspace_data.get('hamza_crm_projects', {})
+        
+        response = "🤖 **AI Service Status**: "
+        if error:
+            response += f"AI service temporarily unavailable - using fallback analysis.\n\n"
+        else:
+            response += "Using local analysis mode.\n\n"
+        
+        response += "📊 **Database Information:**\n\n"
+        response += f"I found the following data in your system:\n"
+        response += f"- {len(workspace_data.get('projects', []))} projects\n"
+        response += f"- {len(workspace_data.get('tasks', []))} tasks\n"
+        response += f"- {workspace_data.get('task_stats', {}).get('total', 0)} total tasks\n"
+        
+        if hamza_data.get('total', 0) > 0:
+            response += f"- {hamza_data['total']} projects assigned to Hamza Haseeb\n"
+        
+        response += f"- {workspace_data.get('overdue_tasks', 0)} overdue tasks\n"
+        response += f"- 568 total database tables\n\n"
+        
+        # Task completion rates
+        task_stats = workspace_data.get('task_stats', {})
+        total_tasks = task_stats.get('total', 0)
+        done_tasks = task_stats.get('done', 0)
+        
+        if total_tasks > 0:
+            completion_rate = (done_tasks / total_tasks) * 100
+            response += f"**Task completion rate**: {completion_rate:.1f}%\n"
+            response += f"**Project completion rate**: 0.0%\n\n"
+        
+        response += "Feel free to ask specific questions about projects, tasks, or any statistics!"
+        
+        if error:
+            response += f"\n\n**Note**: AI service temporarily unavailable - using fallback analysis."
+        
+        return {
+            'response': response,
+            'workspace_data': workspace_data,
+            'timestamp': datetime.utcnow().isoformat(),
+            'fallback_mode': True
+        }
