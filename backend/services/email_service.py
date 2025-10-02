@@ -1,4 +1,10 @@
-import yagmail
+try:
+    import yagmail
+    YAGMAIL_AVAILABLE = True
+except ImportError:
+    yagmail = None
+    YAGMAIL_AVAILABLE = False
+
 from config import Config
 import smtplib
 from email.mime.text import MIMEText

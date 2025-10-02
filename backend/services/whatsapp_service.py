@@ -1,4 +1,10 @@
-from twilio.rest import Client
+try:
+    from twilio.rest import Client
+    TWILIO_AVAILABLE = True
+except ImportError:
+    Client = None
+    TWILIO_AVAILABLE = False
+    
 from config import Config
 
 class WhatsAppService:
@@ -6,7 +12,7 @@ class WhatsAppService:
         self.account_sid = Config.TWILIO_ACCOUNT_SID
         self.auth_token = Config.TWILIO_AUTH_TOKEN
         self.whatsapp_number = Config.TWILIO_WHATSAPP_NUMBER
-        self.client = Client(self.account_sid, self.auth_token) if self.account_sid and self.auth_token else None
+        self.client = Client(self.account_sid, self.auth_token) if (self.account_sid and self.auth_token and TWILIO_AVAILABLE) else None
     
     def send_message(self, to_number, message):
         """Send WhatsApp message via Twilio"""

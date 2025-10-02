@@ -1,6 +1,13 @@
 # Vector Database Service for AI Agent
-import chromadb
-from chromadb.utils import embedding_functions
+try:
+    import chromadb
+    from chromadb.utils import embedding_functions
+    CHROMADB_AVAILABLE = True
+except ImportError:
+    chromadb = None
+    embedding_functions = None
+    CHROMADB_AVAILABLE = False
+
 import os
 from typing import List, Dict, Any
 import json
@@ -14,6 +21,13 @@ class VectorDatabaseService:
     
     def __init__(self, persist_directory: str = "./chroma_db"):
         """Initialize ChromaDB client and collections"""
+        if not CHROMADB_AVAILABLE:
+            self.client = None
+            self.prompt_collection = None
+            self.conversation_collection = None
+            self.knowledge_collection = None
+            return
+            
         self.client = chromadb.PersistentClient(path=persist_directory)
         
         # Use OpenAI embeddings (requires API key)

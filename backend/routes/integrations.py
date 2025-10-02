@@ -4,15 +4,24 @@ integrations_bp = Blueprint('integrations', __name__)
 
 # Import here to avoid circular imports
 from services.zendesk_service import ZendeskService
-from services.whatsapp_service import WhatsAppService
-from services.telegram_service import TelegramService
 from services.email_service import EmailService
 from services.voice_service import VoiceService
 from models.models import db, Integration
 
+# Optional imports for services that require external dependencies
+try:
+    from services.whatsapp_service import WhatsAppService
+    whatsapp_service = WhatsAppService()
+except ImportError:
+    whatsapp_service = None
+
+try:
+    from services.telegram_service import TelegramService
+    telegram_service = TelegramService()
+except ImportError:
+    telegram_service = None
+
 zendesk_service = ZendeskService()
-whatsapp_service = WhatsAppService()
-telegram_service = TelegramService()
 email_service = EmailService()
 voice_service = VoiceService()
 

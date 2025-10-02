@@ -1,5 +1,12 @@
-import speech_recognition as sr
-from pydub import AudioSegment
+try:
+    import speech_recognition as sr
+    from pydub import AudioSegment
+    SPEECH_RECOGNITION_AVAILABLE = True
+except ImportError:
+    sr = None
+    AudioSegment = None
+    SPEECH_RECOGNITION_AVAILABLE = False
+
 import io
 import tempfile
 import os
@@ -8,7 +15,8 @@ import requests
 
 class VoiceService:
     def __init__(self):
-        self.recognizer = sr.Recognizer()
+        self.speech_available = SPEECH_RECOGNITION_AVAILABLE
+        self.recognizer = sr.Recognizer() if SPEECH_RECOGNITION_AVAILABLE else None
     
     def transcribe_audio(self, audio_file):
         """Transcribe audio file to text"""
