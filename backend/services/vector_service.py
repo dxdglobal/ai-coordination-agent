@@ -54,6 +54,13 @@ class VectorDatabaseService:
             embedding_function=openai_ef,
             metadata={"description": "Business process knowledge base"}
         )
+        
+        # Task collection for semantic task search
+        self.task_collection = self.client.get_or_create_collection(
+            name="task_embeddings",
+            embedding_function=openai_ef,
+            metadata={"description": "Task embeddings for semantic search"}
+        )
     
     def store_prompt_template(self, prompt_id: str, prompt_text: str, 
                             category: str = None, metadata: Dict = None) -> bool:
@@ -203,11 +210,159 @@ class VectorDatabaseService:
             return {
                 "prompt_templates": self.prompt_collection.count(),
                 "conversation_contexts": self.conversation_collection.count(),
-                "business_knowledge": self.knowledge_collection.count()
+                "business_knowledge": self.knowledge_collection.count(),
+                "task_embeddings": self.task_collection.count()
             }
         except Exception as e:
             print(f"Error getting collection stats: {e}")
             return {"error": str(e)}
+
+    def store_task_embedding(self, task_id: int, task_data: Dict) -> bool:
+        """Store task with embeddings for semantic search"""
+        try:
+            # Create a comprehensive text representation of the task
+            task_text = f"Title: {task_data.get('title', '')}\n"
+            task_text += f"Description: {task_data.get('description', '')}\n"
+            task_text += f"Status: {task_data.get('status', '')}\n"
+            task_text += f"Priority: {task_data.get('priority', '')}\n"
+            
+            if task_data.get('assignee'):
+                task_text += f"Assignee: {task_data.get('assignee')}\n"
+            if task_data.get('project_name'):
+                task_text += f"Project: {task_data.get('project_name')}\n"
+            if task_data.get('labels'):
+                labels = [label['name'] for label in task_data.get('labels', [])]
+                task_text += f"Labels: {', '.join(labels)}\n"
+            
+            # Metadata for filtering and retrieval
+            metadata = {
+                "task_id": task_id,
+                "title": task_data.get('title', ''),
+                "status": task_data.get('status', ''),
+                "priority": task_data.get('priority', ''),
+                "assignee": task_data.get('assignee', ''),
+                "project_id": task_data.get('project_id'),
+                "project_name": task_data.get('project_name', ''),
+                "created_at": task_data.get('created_at', datetime.utcnow().isoformat()),
+                "updated_at": task_data.get('updated_at', datetime.utcnow().isoformat()),
+                "type": "task"
+            }
+            
+            # Add estimated and actual hours if available
+            if task_data.get('estimated_hours'):
+                metadata["estimated_hours"] = task_data.get('estimated_hours')
+            if task_data.get('actual_hours'):
+                metadata["actual_hours"] = task_data.get('actual_hours')
+            
+            # Add deadline info if available
+            if task_data.get('start_time'):
+                metadata["start_time"] = task_data.get('start_time')
+            if task_data.get('end_time'):
+                metadata["end_time"] = task_data.get('end_time')
+            
+            self.task_collection.add(
+                documents=[task_text.strip()],
+                metadatas=[metadata],
+                ids=[f"task_{task_id}"]
+            )
+            return True
+        except Exception as e:
+            print(f"Error storing task embedding: {e}")
+            return False
+    
+    def update_task_embedding(self, task_id: int, task_data: Dict) -> bool:
+        """Update existing task embedding"""
+        try:
+            # First, try to delete the existing embedding
+            try:
+                self.task_collection.delete(ids=[f"task_{task_id}"])
+            except:
+                pass  # ID might not exist, which is fine
+            
+            # Then store the new embedding
+            return self.store_task_embedding(task_id, task_data)
+        except Exception as e:
+            print(f"Error updating task embedding: {e}")
+            return False
+    
+    def delete_task_embedding(self, task_id: int) -> bool:
+        """Delete task embedding from vector database"""
+        try:
+            self.task_collection.delete(ids=[f"task_{task_id}"])
+            return True
+        except Exception as e:
+            print(f"Error deleting task embedding: {e}")
+            return False
+    
+    def semantic_task_search(self, query: str, n_results: int = 10, filters: Dict = None) -> List[Dict]:
+        """
+        Perform semantic search on tasks using natural language queries
+        
+        Args:
+            query: Natural language query (e.g., "Find high priority tasks", "Show overdue items")
+            n_results: Number of results to return
+            filters: Optional filters like {"status": "todo", "priority": "high"}
+        """
+        try:
+            # Build where clause for filtering if provided
+            where_clause = {}
+            if filters:
+                for key, value in filters.items():
+                    if value:  # Only add non-empty filters
+                        where_clause[key] = value
+            
+            # Perform semantic search
+            search_kwargs = {
+                "query_texts": [query],
+                "n_results": n_results,
+                "include": ["documents", "metadatas", "distances"]
+            }
+            
+            if where_clause:
+                search_kwargs["where"] = where_clause
+            
+            results = self.task_collection.query(**search_kwargs)
+            
+            # Format results
+            semantic_results = []
+            for i in range(len(results['documents'][0])):
+                task_data = {
+                    "task_id": results['metadatas'][0][i].get('task_id'),
+                    "title": results['metadatas'][0][i].get('title'),
+                    "content": results['documents'][0][i],
+                    "metadata": results['metadatas'][0][i],
+                    "relevance_score": 1 - results['distances'][0][i],  # Convert distance to similarity
+                    "status": results['metadatas'][0][i].get('status'),
+                    "priority": results['metadatas'][0][i].get('priority'),
+                    "assignee": results['metadatas'][0][i].get('assignee'),
+                    "project_name": results['metadatas'][0][i].get('project_name')
+                }
+                semantic_results.append(task_data)
+            
+            return semantic_results
+        except Exception as e:
+            print(f"Error in semantic task search: {e}")
+            return []
+    
+    def get_overdue_tasks_semantic(self, query: str = "overdue tasks past deadline urgent", n_results: int = 10) -> List[Dict]:
+        """Get potentially overdue tasks using semantic search"""
+        return self.semantic_task_search(query, n_results)
+    
+    def get_high_priority_tasks_semantic(self, query: str = "high priority urgent important critical tasks", n_results: int = 10) -> List[Dict]:
+        """Get high priority tasks using semantic search"""
+        return self.semantic_task_search(query, n_results)
+    
+    def search_tasks_by_assignee_semantic(self, assignee: str, additional_query: str = "", n_results: int = 10) -> List[Dict]:
+        """Search tasks for a specific assignee using semantic search"""
+        query = f"tasks assigned to {assignee} {additional_query}".strip()
+        filters = {"assignee": assignee} if assignee else None
+        return self.semantic_task_search(query, n_results, filters)
+    
+    def search_tasks_by_project_semantic(self, project_name: str, additional_query: str = "", n_results: int = 10) -> List[Dict]:
+        """Search tasks within a specific project using semantic search"""
+        query = f"tasks in project {project_name} {additional_query}".strip()
+        filters = {"project_name": project_name} if project_name else None
+        return self.semantic_task_search(query, n_results, filters)
 
 # Example usage and testing
 if __name__ == "__main__":

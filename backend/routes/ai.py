@@ -160,6 +160,24 @@ def smart_chat():
                 'response_time_ms': result.get('response_time', 0)
             })
         else:
+            # Check if it's about Hamza projects - use our enhanced service
+            if any(keyword in message.lower() for keyword in ['hamza', 'hamza projects', 'hamza tasks']):
+                print(f"🎯 HAMZA QUERY DETECTED: {message}")
+                try:
+                    result = ai_service.analyze_user_query(message)
+                    print(f"✅ AI Service result: {result.get('response', '')[:100]}...")
+                    return jsonify({
+                        'success': True,
+                        'response': result['response'],
+                        'session_id': session_id,
+                        'hamza_projects_data': result.get('hamza_projects_data', {}),
+                        'fallback_mode': result.get('fallback_mode', False),
+                        'timestamp': result.get('timestamp')
+                    })
+                except Exception as e:
+                    print(f"❌ AI Service error: {str(e)}")
+                    # Fall through to DeepseekService on error
+            
             # Fallback to traditional service
             deepseek_service = DeepseekService()
             result = deepseek_service.smart_agent_response(message, session_id, context)

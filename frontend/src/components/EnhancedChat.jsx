@@ -58,11 +58,11 @@ const EnhancedChat = () => {
     setIsLoading(true);
 
     try {
-      const endpoint = rlEnabled ? '/ai/rl/chat' : '/ai/chat';
+      // Use the analyze endpoint which is proven to work
+      const endpoint = '/ai/analyze';
       const payload = {
-        message: inputMessage,
-        conversation_id: conversationId,
-        ...(rlEnabled && strategyPreference !== 'auto' && { preferred_strategy: strategyPreference })
+        query: inputMessage,
+        session: conversationId
       };
 
       const response = await fetch(`http://localhost:5001${endpoint}`, {
@@ -82,20 +82,18 @@ const EnhancedChat = () => {
           sender: 'ai',
           timestamp: new Date().toISOString(),
           conversationId: conversationId,
-          strategyUsed: data.strategy_used,
+          strategyUsed: data.intent_type,
           confidence: data.confidence,
           responseTime: data.response_time
         };
 
         setMessages(prev => [...prev, aiMessage]);
         
-        // Show feedback option for RL-enabled responses
-        if (rlEnabled) {
-          setShowFeedback(prev => ({
-            ...prev,
-            [aiMessage.id]: true
-          }));
-        }
+        // Show feedback option 
+        setShowFeedback(prev => ({
+          ...prev,
+          [aiMessage.id]: true
+        }));
       } else {
         console.error('Chat error:', data.error);
       }
@@ -137,6 +135,48 @@ const EnhancedChat = () => {
       }
     } catch (error) {
       console.error('Error optimizing strategies:', error);
+    }
+  };
+
+  const addWarningComments = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('http://localhost:5001/api/add-warnings', {
+        method: 'POST'
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        const warningMessage = {
+          id: Date.now(),
+          text: `✅ **Warning Comments Added Successfully!**\n\n🚨 Added ${data.warnings_added} warning comments to overdue projects\n📊 Total overdue projects found: ${data.overdue_projects}\n\n⚠️ Project managers have been automatically notified about overdue projects.`,
+          sender: 'system',
+          timestamp: new Date().toISOString(),
+          isSystemMessage: true
+        };
+        setMessages(prev => [...prev, warningMessage]);
+      } else {
+        const errorMessage = {
+          id: Date.now(),
+          text: `❌ **Error Adding Warning Comments**\n\nError: ${data.error}`,
+          sender: 'system',
+          timestamp: new Date().toISOString(),
+          isSystemMessage: true
+        };
+        setMessages(prev => [...prev, errorMessage]);
+      }
+    } catch (error) {
+      console.error('Error adding warning comments:', error);
+      const errorMessage = {
+        id: Date.now(),
+        text: `❌ **System Error**\n\nFailed to add warning comments: ${error.message}`,
+        sender: 'system',
+        timestamp: new Date().toISOString(),
+        isSystemMessage: true
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -185,6 +225,19 @@ const EnhancedChat = () => {
             disabled={!rlEnabled}
           >
             Optimize Strategies
+          </button>
+
+          <button 
+            className="warning-btn"
+            onClick={addWarningComments}
+            disabled={isLoading}
+            style={{ 
+              backgroundColor: '#ff6b35', 
+              color: 'white',
+              marginLeft: '10px' 
+            }}
+          >
+            {isLoading ? 'Adding Warnings...' : '⚠️ Add Overdue Warnings'}
           </button>
         </div>
 

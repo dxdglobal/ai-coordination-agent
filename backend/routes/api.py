@@ -6,6 +6,10 @@ api_bp = Blueprint('api', __name__)
 
 # Import here to avoid circular imports
 from models.models import db, Project, Task, Comment, Label, TaskLabel, TaskStatus, Priority
+from services.vector_service import VectorDatabaseService
+
+# Initialize vector service
+vector_service = VectorDatabaseService()
 
 # Projects endpoints
 @api_bp.route('/projects', methods=['GET'])
@@ -107,7 +111,14 @@ def create_task():
     db.session.add(task)
     db.session.commit()
     
-    return jsonify(task.to_dict()), 201
+    # Store task embedding in vector database
+    task_dict = task.to_dict()
+    try:
+        vector_service.store_task_embedding(task.id, task_dict)
+    except Exception as e:
+        print(f"Warning: Failed to store task embedding: {e}")
+    
+    return jsonify(task_dict), 201
 
 @api_bp.route('/tasks/<int:task_id>', methods=['GET'])
 def get_task(task_id):
@@ -133,11 +144,25 @@ def update_task():
     
     db.session.commit()
     
-    return jsonify(task.to_dict())
+    # Update task embedding in vector database
+    task_dict = task.to_dict()
+    try:
+        vector_service.update_task_embedding(task.id, task_dict)
+    except Exception as e:
+        print(f"Warning: Failed to update task embedding: {e}")
+    
+    return jsonify(task_dict)
 
 @api_bp.route('/tasks/<int:task_id>', methods=['DELETE'])
 def delete_task(task_id):
     task = Task.query.get_or_404(task_id)
+    
+    # Delete task embedding from vector database
+    try:
+        vector_service.delete_task_embedding(task_id)
+    except Exception as e:
+        print(f"Warning: Failed to delete task embedding: {e}")
+    
     db.session.delete(task)
     db.session.commit()
     
@@ -266,3 +291,153 @@ def get_project_stats(project_id):
             'blocked': len([t for t in project.tasks if t.status == TaskStatus.BLOCKED])
         }
     })
+
+# Semantic Search Endpoints for Tasks
+@api_bp.route('/tasks/search/semantic', methods=['POST'])
+def semantic_search_tasks():
+    """Perform semantic search on tasks using natural language queries"""
+    data = request.get_json()
+    query = data.get('query', '')
+    n_results = data.get('limit', 10)
+    filters = data.get('filters', {})
+    
+    if not query:
+        return jsonify({'error': 'Query parameter is required'}), 400
+    
+    try:
+        results = vector_service.semantic_task_search(query, n_results, filters)
+        
+        # Enrich results with full task data from database
+        enriched_results = []
+        for result in results:
+            task_id = result.get('task_id')
+            if task_id:
+                task = Task.query.get(task_id)
+                if task:
+                    task_data = task.to_dict()
+                    task_data['relevance_score'] = result.get('relevance_score', 0)
+                    task_data['search_content'] = result.get('content', '')
+                    enriched_results.append(task_data)
+        
+        return jsonify({
+            'query': query,
+            'results': enriched_results,
+            'total_found': len(enriched_results)
+        })
+    except Exception as e:
+        return jsonify({'error': f'Search failed: {str(e)}'}), 500
+
+@api_bp.route('/tasks/search/overdue', methods=['GET'])
+def get_overdue_tasks_semantic():
+    """Get potentially overdue tasks using semantic search"""
+    try:
+        results = vector_service.get_overdue_tasks_semantic()
+        
+        # Enrich results with full task data from database
+        enriched_results = []
+        for result in results:
+            task_id = result.get('task_id')
+            if task_id:
+                task = Task.query.get(task_id)
+                if task:
+                    task_data = task.to_dict()
+                    task_data['relevance_score'] = result.get('relevance_score', 0)
+                    enriched_results.append(task_data)
+        
+        return jsonify({
+            'results': enriched_results,
+            'total_found': len(enriched_results)
+        })
+    except Exception as e:
+        return jsonify({'error': f'Search failed: {str(e)}'}), 500
+
+@api_bp.route('/tasks/search/high-priority', methods=['GET'])
+def get_high_priority_tasks_semantic():
+    """Get high priority tasks using semantic search"""
+    try:
+        results = vector_service.get_high_priority_tasks_semantic()
+        
+        # Enrich results with full task data from database  
+        enriched_results = []
+        for result in results:
+            task_id = result.get('task_id')
+            if task_id:
+                task = Task.query.get(task_id)
+                if task:
+                    task_data = task.to_dict()
+                    task_data['relevance_score'] = result.get('relevance_score', 0)
+                    enriched_results.append(task_data)
+        
+        return jsonify({
+            'results': enriched_results,
+            'total_found': len(enriched_results)
+        })
+    except Exception as e:
+        return jsonify({'error': f'Search failed: {str(e)}'}), 500
+
+@api_bp.route('/tasks/search/assignee/<assignee>', methods=['GET'])
+def search_tasks_by_assignee_semantic(assignee):
+    """Search tasks for a specific assignee using semantic search"""
+    additional_query = request.args.get('query', '')
+    n_results = request.args.get('limit', 10)
+    
+    try:
+        results = vector_service.search_tasks_by_assignee_semantic(assignee, additional_query, int(n_results))
+        
+        # Enrich results with full task data from database
+        enriched_results = []
+        for result in results:
+            task_id = result.get('task_id')
+            if task_id:
+                task = Task.query.get(task_id)
+                if task:
+                    task_data = task.to_dict()
+                    task_data['relevance_score'] = result.get('relevance_score', 0)
+                    enriched_results.append(task_data)
+        
+        return jsonify({
+            'assignee': assignee,
+            'additional_query': additional_query,
+            'results': enriched_results,
+            'total_found': len(enriched_results)
+        })
+    except Exception as e:
+        return jsonify({'error': f'Search failed: {str(e)}'}), 500
+
+@api_bp.route('/tasks/search/project/<project_name>', methods=['GET'])
+def search_tasks_by_project_semantic(project_name):
+    """Search tasks within a specific project using semantic search"""
+    additional_query = request.args.get('query', '')
+    n_results = request.args.get('limit', 10)
+    
+    try:
+        results = vector_service.search_tasks_by_project_semantic(project_name, additional_query, int(n_results))
+        
+        # Enrich results with full task data from database
+        enriched_results = []
+        for result in results:
+            task_id = result.get('task_id')
+            if task_id:
+                task = Task.query.get(task_id)
+                if task:
+                    task_data = task.to_dict()
+                    task_data['relevance_score'] = result.get('relevance_score', 0)
+                    enriched_results.append(task_data)
+        
+        return jsonify({
+            'project_name': project_name,
+            'additional_query': additional_query,
+            'results': enriched_results,
+            'total_found': len(enriched_results)
+        })
+    except Exception as e:
+        return jsonify({'error': f'Search failed: {str(e)}'}), 500
+
+@api_bp.route('/vector/stats', methods=['GET'])
+def get_vector_database_stats():
+    """Get statistics about the vector database"""
+    try:
+        stats = vector_service.get_collection_stats()
+        return jsonify(stats)
+    except Exception as e:
+        return jsonify({'error': f'Failed to get stats: {str(e)}'}), 500
