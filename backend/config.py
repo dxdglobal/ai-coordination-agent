@@ -43,12 +43,12 @@ class Config:
     # Default AI Provider
     DEFAULT_AI_PROVIDER = "openai_primary"
     
-    # WhatsApp/Twilio
+    # WhatsApp/Twilio (optional)
     TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
     TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
     TWILIO_WHATSAPP_NUMBER = os.environ.get('TWILIO_WHATSAPP_NUMBER')
     
-    # Telegram
+    # Telegram (optional)
     TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
     
     # Email

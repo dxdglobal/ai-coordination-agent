@@ -1,13 +1,24 @@
 import asyncio
-from telegram import Bot, Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters
+try:
+    from telegram import Bot, Update
+    from telegram.ext import Application, CommandHandler, MessageHandler, filters
+    TELEGRAM_AVAILABLE = True
+except ImportError:
+    Bot = None
+    Update = None
+    Application = None
+    CommandHandler = None
+    MessageHandler = None
+    filters = None
+    TELEGRAM_AVAILABLE = False
+
 from config import Config
 import json
 
 class TelegramService:
     def __init__(self):
         self.bot_token = Config.TELEGRAM_BOT_TOKEN
-        self.bot = Bot(token=self.bot_token) if self.bot_token else None
+        self.bot = Bot(token=self.bot_token) if (self.bot_token and TELEGRAM_AVAILABLE) else None
     
     def send_message(self, chat_id, message, parse_mode='HTML'):
         """Send message to Telegram chat"""

@@ -1,6 +1,12 @@
 # Reinforcement Learning Reward System for AI Agent
 import json
-import numpy as np
+try:
+    import numpy as np
+    NUMPY_AVAILABLE = True
+except ImportError:
+    np = None
+    NUMPY_AVAILABLE = False
+
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Tuple
 from models.models import db, ConversationHistory

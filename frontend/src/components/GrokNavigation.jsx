@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useContext } from 'react'
 import {
   Box,
   IconButton,
@@ -11,6 +11,9 @@ import {
   Typography,
   Divider,
   Avatar,
+  Menu as MenuComponent,
+  MenuItem,
+  Chip,
 } from '@mui/material'
 import {
   Menu,
@@ -23,13 +26,18 @@ import {
   Settings,
   Help,
   Psychology,
+  Logout,
+  AccountCircle,
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { AuthContext } from '../context/AuthContext'
 
 const GrokNavigation = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [userMenuAnchor, setUserMenuAnchor] = useState(null)
   const navigate = useNavigate()
   const location = useLocation()
+  const { user, logout } = useContext(AuthContext)
 
   const menuItems = [
     { title: 'ChatGPT Style', path: '/', icon: <SmartToy /> },
@@ -48,6 +56,24 @@ const GrokNavigation = () => {
 
   const toggleDrawer = () => {
     setIsDrawerOpen(!isDrawerOpen)
+  }
+
+  const handleUserMenuOpen = (event) => {
+    setUserMenuAnchor(event.currentTarget)
+  }
+
+  const handleUserMenuClose = () => {
+    setUserMenuAnchor(null)
+  }
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+      navigate('/login')
+    } catch (error) {
+      console.error('Logout failed:', error)
+    }
+    handleUserMenuClose()
   }
 
   return (
@@ -93,14 +119,38 @@ const GrokNavigation = () => {
         }}
       >
         <Box sx={{ p: 3 }}>
+          {/* User Info Section */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-            <Avatar sx={{ backgroundColor: '#333333' }}>
-              <SmartToy />
+            <Avatar 
+              sx={{ 
+                backgroundColor: '#10a37f',
+                width: 40,
+                height: 40,
+              }}
+              onClick={handleUserMenuOpen}
+            >
+              {user?.name ? user.name.charAt(0).toUpperCase() : <AccountCircle />}
             </Avatar>
-            <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 600 }}>
-              AI Coordination Agent
-            </Typography>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="subtitle1" sx={{ color: '#ffffff', fontWeight: 600, fontSize: '0.95rem' }}>
+                {user?.name || 'User'}
+              </Typography>
+              <Chip
+                label={user?.role || 'Member'}
+                size="small"
+                sx={{
+                  backgroundColor: 'rgba(16, 163, 127, 0.2)',
+                  color: '#10a37f',
+                  fontSize: '0.75rem',
+                  height: 20,
+                }}
+              />
+            </Box>
           </Box>
+
+          <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 600, mb: 2 }}>
+            AI Coordination Agent
+          </Typography>
 
           <List sx={{ px: 0 }}>
             {menuItems.map((item) => (
@@ -157,7 +207,7 @@ const GrokNavigation = () => {
               </ListItemButton>
             </ListItem>
             
-            <ListItem disablePadding>
+            <ListItem disablePadding sx={{ mb: 0.5 }}>
               <ListItemButton
                 sx={{
                   borderRadius: 2,
@@ -174,9 +224,62 @@ const GrokNavigation = () => {
                 <ListItemText primary="Help" />
               </ListItemButton>
             </ListItem>
+
+            <ListItem disablePadding>
+              <ListItemButton
+                onClick={handleLogout}
+                sx={{
+                  borderRadius: 2,
+                  color: '#f44336',
+                  '&:hover': {
+                    backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                    color: '#f44336',
+                  },
+                }}
+              >
+                <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>
+                  <Logout />
+                </ListItemIcon>
+                <ListItemText primary="Logout" />
+              </ListItemButton>
+            </ListItem>
           </List>
         </Box>
       </Drawer>
+
+      {/* User Menu */}
+      <MenuComponent
+        anchorEl={userMenuAnchor}
+        open={Boolean(userMenuAnchor)}
+        onClose={handleUserMenuClose}
+        PaperProps={{
+          sx: {
+            backgroundColor: '#1a1a1a',
+            border: '1px solid #333333',
+            minWidth: 200,
+          },
+        }}
+      >
+        <MenuItem onClick={handleUserMenuClose} sx={{ color: '#ffffff' }}>
+          <ListItemIcon sx={{ color: '#888888' }}>
+            <AccountCircle />
+          </ListItemIcon>
+          Profile
+        </MenuItem>
+        <MenuItem onClick={handleUserMenuClose} sx={{ color: '#ffffff' }}>
+          <ListItemIcon sx={{ color: '#888888' }}>
+            <Settings />
+          </ListItemIcon>
+          Settings
+        </MenuItem>
+        <Divider sx={{ borderColor: '#333333' }} />
+        <MenuItem onClick={handleLogout} sx={{ color: '#f44336' }}>
+          <ListItemIcon sx={{ color: '#f44336' }}>
+            <Logout />
+          </ListItemIcon>
+          Logout
+        </MenuItem>
+      </MenuComponent>
     </>
   )
 }

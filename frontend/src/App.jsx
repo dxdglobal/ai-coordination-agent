@@ -4,7 +4,9 @@ import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import { Box } from '@mui/material'
 import GrokNavigation from './components/GrokNavigation'
-import Dashboard from './pages/Dashboard'
+import ProtectedRoute from './components/ProtectedRoute'
+import Login from './pages/Login'
+import Dashboard from './pages/DashboardEnhanced'
 import Projects from './pages/Projects'
 import Tasks from './pages/Tasks'
 import ChatReal from './pages/ChatReal'
@@ -13,6 +15,7 @@ import RLChat from './pages/RLChat'
 import Integrations from './pages/Integrations'
 import EnhancedChatbot from './components/EnhancedChatbot'
 import { APIProvider } from './context/APIContext'
+import { AuthProvider } from './context/AuthContext'
 
 const theme = createTheme({
   palette: {
@@ -98,83 +101,104 @@ function App() {
 
   return (
     <Router>
-      <APIProvider>
-        <Routes>
-          {/* Enhanced AI Chatbot - Main route */}
-          <Route path="/" element={
-            <EnhancedChatbot />
-          } />
-          
-          {/* ChatGPT Style with light theme */}
-          <Route path="/chatgpt" element={
-            <ThemeProvider theme={lightTheme}>
-              <CssBaseline />
-              <ChatGPT />
-            </ThemeProvider>
-          } />
-          
-          {/* Other routes with dark theme */}
-          <Route path="/chat-real" element={
-            <ThemeProvider theme={theme}>
-              <CssBaseline />
-              <Box sx={{ flexGrow: 1, minHeight: '100vh', backgroundColor: '#0f0f0f' }}>
-                <GrokNavigation />
-                <ChatReal />
-              </Box>
-            </ThemeProvider>
-          } />
-          
-          <Route path="/rl-chat" element={
-            <ThemeProvider theme={theme}>
-              <CssBaseline />
-              <Box sx={{ flexGrow: 1, minHeight: '100vh', backgroundColor: '#0f0f0f' }}>
-                <GrokNavigation />
-                <RLChat />
-              </Box>
-            </ThemeProvider>
-          } />
-          
-          <Route path="/dashboard" element={
-            <ThemeProvider theme={theme}>
-              <CssBaseline />
-              <Box sx={{ flexGrow: 1, minHeight: '100vh', backgroundColor: '#0f0f0f' }}>
-                <GrokNavigation />
-                <Dashboard />
-              </Box>
-            </ThemeProvider>
-          } />
-          
-          <Route path="/projects" element={
-            <ThemeProvider theme={theme}>
-              <CssBaseline />
-              <Box sx={{ flexGrow: 1, minHeight: '100vh', backgroundColor: '#0f0f0f' }}>
-                <GrokNavigation />
-                <Projects />
-              </Box>
-            </ThemeProvider>
-          } />
-          
-          <Route path="/tasks" element={
-            <ThemeProvider theme={theme}>
-              <CssBaseline />
-              <Box sx={{ flexGrow: 1, minHeight: '100vh', backgroundColor: '#0f0f0f' }}>
-                <GrokNavigation />
-                <Tasks />
-              </Box>
-            </ThemeProvider>
-          } />
-          
-          <Route path="/integrations" element={
-            <ThemeProvider theme={theme}>
-              <CssBaseline />
-              <Box sx={{ flexGrow: 1, minHeight: '100vh', backgroundColor: '#0f0f0f' }}>
-                <GrokNavigation />
-                <Integrations />
-              </Box>
-            </ThemeProvider>
-          } />
-        </Routes>
-      </APIProvider>
+      <AuthProvider>
+        <APIProvider>
+          <Routes>
+            {/* Login Route - No authentication required */}
+            <Route path="/login" element={<Login />} />
+            
+            {/* Protected Routes */}
+            <Route path="/" element={
+              <ProtectedRoute>
+                <EnhancedChatbot />
+              </ProtectedRoute>
+            } />
+            
+            {/* ChatGPT Style with light theme */}
+            <Route path="/chatgpt" element={
+              <ProtectedRoute>
+                <ThemeProvider theme={lightTheme}>
+                  <CssBaseline />
+                  <ChatGPT />
+                </ThemeProvider>
+              </ProtectedRoute>
+            } />
+            
+            {/* Other routes with dark theme and navigation */}
+            <Route path="/chat-real" element={
+              <ProtectedRoute>
+                <ThemeProvider theme={theme}>
+                  <CssBaseline />
+                  <Box sx={{ flexGrow: 1, minHeight: '100vh', backgroundColor: '#0f0f0f' }}>
+                    <GrokNavigation />
+                    <ChatReal />
+                  </Box>
+                </ThemeProvider>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/rl-chat" element={
+              <ProtectedRoute>
+                <ThemeProvider theme={theme}>
+                  <CssBaseline />
+                  <Box sx={{ flexGrow: 1, minHeight: '100vh', backgroundColor: '#0f0f0f' }}>
+                    <GrokNavigation />
+                    <RLChat />
+                  </Box>
+                </ThemeProvider>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <ThemeProvider theme={theme}>
+                  <CssBaseline />
+                  <Box sx={{ flexGrow: 1, minHeight: '100vh', backgroundColor: '#0f0f0f' }}>
+                    <GrokNavigation />
+                    <Dashboard />
+                  </Box>
+                </ThemeProvider>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/projects" element={
+              <ProtectedRoute>
+                <ThemeProvider theme={theme}>
+                  <CssBaseline />
+                  <Box sx={{ flexGrow: 1, minHeight: '100vh', backgroundColor: '#0f0f0f' }}>
+                    <GrokNavigation />
+                    <Projects />
+                  </Box>
+                </ThemeProvider>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/tasks" element={
+              <ProtectedRoute>
+                <ThemeProvider theme={theme}>
+                  <CssBaseline />
+                  <Box sx={{ flexGrow: 1, minHeight: '100vh', backgroundColor: '#0f0f0f' }}>
+                    <GrokNavigation />
+                    <Tasks />
+                  </Box>
+                </ThemeProvider>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/integrations" element={
+              <ProtectedRoute>
+                <ThemeProvider theme={theme}>
+                  <CssBaseline />
+                  <Box sx={{ flexGrow: 1, minHeight: '100vh', backgroundColor: '#0f0f0f' }}>
+                    <GrokNavigation />
+                    <Integrations />
+                  </Box>
+                </ThemeProvider>
+              </ProtectedRoute>
+            } />
+          </Routes>
+        </APIProvider>
+      </AuthProvider>
     </Router>
   )
 }

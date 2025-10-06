@@ -441,3 +441,151 @@ def get_vector_database_stats():
         return jsonify(stats)
     except Exception as e:
         return jsonify({'error': f'Failed to get stats: {str(e)}'}), 500
+
+# Task 1.1 Completion Endpoints
+@api_bp.route('/database/status', methods=['GET'])
+def get_database_status():
+    """Get complete database status for Task 1.1 verification"""
+    try:
+        from services.crm_sync_service import crm_sync_service
+        from sqlalchemy import inspect
+        
+        # Get AI database info
+        inspector = inspect(db.engine)
+        ai_tables = inspector.get_table_names()
+        
+        # Test CRM connection
+        try:
+            crm_conn = crm_sync_service.get_crm_connection()
+            cursor = crm_conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM tblstaff WHERE active = 1")
+            crm_staff_count = cursor.fetchone()[0]
+            cursor.close()
+            crm_conn.close()
+            crm_status = 'connected'
+        except Exception as e:
+            crm_staff_count = 0
+            crm_status = f'error: {str(e)}'
+        
+        # Check vector database
+        try:
+            vector_stats = vector_service.get_collection_stats()
+            vector_status = 'connected'
+        except Exception as e:
+            vector_stats = None
+            vector_status = f'error: {str(e)}'
+        
+        # Task 1.1 requirements check
+        required_tables = [
+            'users', 'projects', 'tasks', 'comments', 
+            'notifications', 'memory_embeddings', 'employees'
+        ]
+        missing_tables = [table for table in required_tables if table not in ai_tables]
+        
+        completion_score = ((len(required_tables) - len(missing_tables)) / len(required_tables)) * 100
+        
+        status = {
+            'task_1_1_completion': {
+                'score': completion_score,
+                'status': 'complete' if completion_score == 100 else 'partial',
+                'missing_tables': missing_tables
+            },
+            'ai_database': {
+                'status': 'connected',
+                'tables': ai_tables,
+                'table_count': len(ai_tables)
+            },
+            'crm_database': {
+                'status': crm_status,
+                'staff_count': crm_staff_count
+            },
+            'vector_database': {
+                'status': vector_status,
+                'stats': vector_stats
+            },
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        
+        return jsonify(status)
+        
+    except Exception as e:
+        return jsonify({'error': f'Database status check failed: {str(e)}'}), 500
+
+@api_bp.route('/database/sync/crm', methods=['POST'])
+def sync_with_crm():
+    """Trigger CRM synchronization"""
+    try:
+        from services.crm_sync_service import crm_sync_service
+        
+        # Perform full sync
+        result = crm_sync_service.full_sync()
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({'error': f'CRM sync failed: {str(e)}'}), 500
+
+@api_bp.route('/database/init', methods=['POST'])
+def initialize_database():
+    """Initialize database tables and sample data"""
+    try:
+        # Create all tables
+        db.create_all()
+        
+        # Get table info
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        tables = inspector.get_table_names()
+        
+        # Create sample data if requested
+        create_sample = request.get_json().get('create_sample_data', False)
+        sample_created = False
+        
+        if create_sample:
+            from models.models import User, Project, Task, TaskStatus, Priority
+            
+            # Check if sample data exists
+            if User.query.count() == 0:
+                # Create sample user
+                sample_user = User(
+                    crm_user_id=999,
+                    email='ai.agent@dxdglobal.com',
+                    name='AI Agent Test User',
+                    role='admin',
+                    is_active=True
+                )
+                db.session.add(sample_user)
+                
+                # Create sample project
+                sample_project = Project(
+                    name='Task 1.1 - Database Design & Setup',
+                    description='Complete AI memory database schema with CRM integration',
+                    status=TaskStatus.DONE
+                )
+                db.session.add(sample_project)
+                db.session.flush()
+                
+                # Create sample task
+                sample_task = Task(
+                    title='Database Schema Implementation',
+                    description='✅ Users, projects, tasks, comments, notifications tables\n✅ Memory embeddings for semantic search\n✅ CRM database connection\n✅ Vector database integration',
+                    status=TaskStatus.DONE,
+                    priority=Priority.HIGH,
+                    project_id=sample_project.id
+                )
+                db.session.add(sample_task)
+                
+                db.session.commit()
+                sample_created = True
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Database initialized successfully',
+            'tables_created': tables,
+            'table_count': len(tables),
+            'sample_data_created': sample_created,
+            'timestamp': datetime.utcnow().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Database initialization failed: {str(e)}'}), 500
