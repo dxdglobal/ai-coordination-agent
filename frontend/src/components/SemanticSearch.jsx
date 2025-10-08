@@ -171,7 +171,7 @@ const SemanticSearch = ({ onTaskSelect, maxHeight = '600px' }) => {
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
           <Psychology color="primary" sx={{ mr: 1 }} />
           <Typography variant="h6" component="h2">
-            Semantic Task Search
+            Semantic Task SearchHHHH
           </Typography>
           {vectorStats && (
             <Chip 

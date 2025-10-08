@@ -186,52 +186,10 @@ const Dashboard = () => {
         </Grid>
       </Grid>
 
-      <Grid container spacing={3}>
-        {/* AI Suggestions */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              AI Coordination Suggestions
-            </Typography>
-            {suggestions.length === 0 ? (
-              <Typography color="textSecondary">
-                No suggestions at this time. Everything looks good!
-              </Typography>
-            ) : (
-              <List>
-                {suggestions.slice(0, 5).map((suggestion, index) => (
-                  <ListItem key={index}>
-                    <ListItemIcon>
-                      {getSuggestionIcon(suggestion.type)}
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={suggestion.message}
-                      secondary={
-                        <Chip
-                          label={suggestion.priority}
-                          size="small"
-                          color={suggestion.priority === 'high' ? 'error' : 'default'}
-                        />
-                      }
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            )}
-            <Button
-              variant="outlined"
-              startIcon={<AutoAwesome />}
-              sx={{ mt: 1 }}
-              onClick={() => window.location.href = '/chat'}
-            >
-              Chat with AI Agent
-            </Button>
-          </Paper>
-        </Grid>
-
+      <Grid container spacing={3} sx={{ width: '100%' }}>
         {/* Recent Tasks */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
+        <Grid item xs={12} md={8} sx={{ width: { xs: '100%', md: '66.666%' } }}>
+          <Paper sx={{ p: 2, height: 'fit-content' }}>
             <Typography variant="h6" gutterBottom>
               Recent Tasks
             </Typography>
@@ -278,6 +236,48 @@ const Dashboard = () => {
               onClick={() => window.location.href = '/tasks'}
             >
               View All Tasks
+            </Button>
+          </Paper>
+        </Grid>
+
+        {/* AI Suggestions */}
+        <Grid item xs={12} md={4} sx={{ width: { xs: '100%', md: '33.333%' } }}>
+          <Paper sx={{ p: 2, height: 'fit-content' }}>
+            <Typography variant="h6" gutterBottom>
+              AI Coordination Suggestions
+            </Typography>
+            {suggestions.length === 0 ? (
+              <Typography color="textSecondary">
+                No suggestions at this time. Everything looks good!
+              </Typography>
+            ) : (
+              <List>
+                {suggestions.slice(0, 5).map((suggestion, index) => (
+                  <ListItem key={index}>
+                    <ListItemIcon>
+                      {getSuggestionIcon(suggestion.type)}
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={suggestion.message}
+                      secondary={
+                        <Chip
+                          label={suggestion.priority}
+                          size="small"
+                          color={suggestion.priority === 'high' ? 'error' : 'default'}
+                        />
+                      }
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            )}
+            <Button
+              variant="outlined"
+              startIcon={<AutoAwesome />}
+              sx={{ mt: 1 }}
+              onClick={() => window.location.href = '/chat'}
+            >
+              Chat with AI Agent
             </Button>
           </Paper>
         </Grid>

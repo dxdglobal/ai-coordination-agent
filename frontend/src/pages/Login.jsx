@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react'
+import React, { useState, useContext, useEffect } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import {
   Container,
@@ -13,6 +13,8 @@ import {
   CardContent,
   InputAdornment,
   IconButton,
+  Checkbox,
+  FormControlLabel,
 } from '@mui/material'
 import {
   Visibility,
@@ -29,11 +31,31 @@ const Login = () => {
     password: ''
   })
   const [showPassword, setShowPassword] = useState(false)
+  const [savePassword, setSavePassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   
   const { login, isAuthenticated } = useContext(AuthContext)
   const navigate = useNavigate()
+
+  // Load saved credentials on component mount
+  useEffect(() => {
+    const savedCredentials = localStorage.getItem('savedLoginCredentials')
+    if (savedCredentials) {
+      const { username, password } = JSON.parse(savedCredentials)
+      setCredentials({ username, password })
+      setSavePassword(true)
+    }
+  }, [])
+
+  // Save/remove credentials when savePassword changes
+  useEffect(() => {
+    if (savePassword && credentials.username && credentials.password) {
+      localStorage.setItem('savedLoginCredentials', JSON.stringify(credentials))
+    } else if (!savePassword) {
+      localStorage.removeItem('savedLoginCredentials')
+    }
+  }, [savePassword, credentials])
 
   // Redirect if already authenticated
   if (isAuthenticated) {
@@ -41,12 +63,19 @@ const Login = () => {
   }
 
   const handleInputChange = (e) => {
-    setCredentials({
+    const newCredentials = {
       ...credentials,
       [e.target.name]: e.target.value
-    })
+    }
+    setCredentials(newCredentials)
+    
     // Clear error when user starts typing
     if (error) setError('')
+    
+    // If user clears the fields and savePassword is checked, uncheck it
+    if (savePassword && (!newCredentials.username || !newCredentials.password)) {
+      setSavePassword(false)
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -56,6 +85,14 @@ const Login = () => {
 
     try {
       await login(credentials.username, credentials.password)
+      
+      // Save credentials if checkbox is checked
+      if (savePassword) {
+        localStorage.setItem('savedLoginCredentials', JSON.stringify(credentials))
+      } else {
+        localStorage.removeItem('savedLoginCredentials')
+      }
+      
       navigate('/dashboard')
     } catch (err) {
       setError(err.message || 'Login failed. Please check your credentials.')
@@ -158,6 +195,7 @@ const Login = () => {
                   sx={{
                     '& .MuiOutlinedInput-root': {
                       backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                      color: '#10a37f',
                       '& fieldset': {
                         borderColor: 'rgba(255, 255, 255, 0.2)',
                       },
@@ -210,6 +248,7 @@ const Login = () => {
                   sx={{
                     '& .MuiOutlinedInput-root': {
                       backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                      color: '#10a37f',
                       '& fieldset': {
                         borderColor: 'rgba(255, 255, 255, 0.2)',
                       },
@@ -227,6 +266,34 @@ const Login = () => {
                       color: '#10a37f',
                     },
                   }}
+                />
+              </Box>
+
+              <Box sx={{ mb: 3 }}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={savePassword}
+                      onChange={(e) => setSavePassword(e.target.checked)}
+                      sx={{
+                        color: '#888888',
+                        '&.Mui-checked': {
+                          color: '#10a37f',
+                        },
+                      }}
+                    />
+                  }
+                  label={
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: '#888888',
+                        fontSize: '0.875rem',
+                      }}
+                    >
+                      Save Password
+                    </Typography>
+                  }
                 />
               </Box>
 

@@ -40,8 +40,6 @@ const GrokNavigation = () => {
   const { user, logout } = useContext(AuthContext)
 
   const menuItems = [
-    { title: 'ChatGPT Style', path: '/', icon: <SmartToy /> },
-    { title: 'Classic Chat', path: '/chat-real', icon: <SmartToy /> },
     { title: 'RL Chat', path: '/rl-chat', icon: <Psychology /> },
     { title: 'Dashboard', path: '/dashboard', icon: <Dashboard /> },
     { title: 'Projects', path: '/projects', icon: <Folder /> },

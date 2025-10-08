@@ -1,31 +1,192 @@
+/* =====================================================
+   GLOBAL FULL SCREEN FOUNDATION STYLES
+   ===================================================== */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
   line-height: 1.5;
   font-weight: 400;
+  font-size: 16px;
 
-  color-scheme: light dark;
+  color-scheme: dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  background-color: #1a1a1a;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  
+  /* Full screen CSS variables */
+  --full-height: 100vh;
+  --full-width: 100vw;
+  --navbar-height: 60px;
+  --sidebar-width: 250px;
+  --content-padding: 1rem;
+  
+  /* Color scheme for full screen app */
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #2d2d2d;
+  --bg-tertiary: #3a3a3a;
+  --text-primary: rgba(255, 255, 255, 0.87);
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --accent-color: #646cff;
+  --border-color: rgba(255, 255, 255, 0.1);
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+html {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg-primary);
 }
 
 body {
   margin: 0;
-  min-height: 100vh;
-  justify-content: center;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg-primary);
+  font-family: inherit;
+  color: var(--text-primary);
+}
+
+/* Remove default margins and paddings from common elements */
+h1, h2, h3, h4, h5, h6, p, ul, ol, li {
+  margin: 0;
+  padding: 0;
+}
+
+/* Full screen optimized typography */
+h1 {
+  font-size: clamp(1.8rem, 4vw, 3.2rem);
+  line-height: 1.1;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+h2 {
+  font-size: clamp(1.5rem, 3vw, 2.4rem);
+  line-height: 1.2;
+  font-weight: 600;
+  margin-bottom: 0.8rem;
+}
+
+h3 {
+  font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+  line-height: 1.3;
+  font-weight: 500;
+  margin-bottom: 0.6rem;
+}
+
+/* Links */
+a {
+  font-weight: 500;
+  color: var(--accent-color);
+  text-decoration: none;
+  transition: color 0.25s ease;
+}
+
+a:hover {
+  color: #535bf2;
+}
+
+/* Buttons optimized for touch and full screen */
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.8em 1.5em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  min-height: 44px; /* Touch-friendly minimum */
+}
+
+button:hover {
+  border-color: var(--accent-color);
+  background-color: rgba(100, 108, 255, 0.1);
+}
+
+button:focus,
+button:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+/* Input fields for full screen forms */
+input, textarea, select {
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  padding: 0.8em 1em;
+  font-size: 1em;
+  font-family: inherit;
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  transition: all 0.25s ease;
+  min-height: 44px;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(100, 108, 255, 0.1);
+}
+
+/* Utility classes for full screen layouts */
+.fullscreen {
+  width: 100vw !important;
+  height: 100vh !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  z-index: 9999 !important;
+}
+
+.fill-viewport {
+  width: 100vw;
+  height: 100vh;
+}
+
+.fill-container {
+  width: 100%;
+  height: 100%;
+}
+
+.no-scroll {
+  overflow: hidden;
+}
+
+.scroll-y {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Hide native browser elements in fullscreen */
+.hide-browser-ui {
+  -webkit-app-region: drag;
+}
+
+.hide-browser-ui button,
+.hide-browser-ui input,
+.hide-browser-ui a {
+  -webkit-app-region: no-drag;
 }
 
 h1 {
@@ -62,5 +223,173 @@ button:focus-visible {
   }
   button {
     background-color: #f9f9f9;
+  }
+}
+
+/* =====================================================
+   CLEAN FLEXBOX GRID UTILITIES FOR DASHBOARD CARDS
+   ===================================================== */
+
+/* Keep this specific MUI Grid rule as requested */
+.css-1qouitu-MuiGrid-root{
+  --Grid-columnSpacing: 15px;
+  width: 100% !important;
+  max-width: 70% !important;
+  margin: 0 auto !important;
+  padding: 1rem !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: space-between !important;
+  gap: 0.5rem !important;
+  box-sizing: border-box !important;
+}
+
+/* Additional MUI Grid container class */
+.css-1u8xl8z-MuiGrid-root{
+  --Grid-columnSpacing: 15px;
+  width: 100% !important;
+  max-width: 70% !important;
+  margin: 0 auto !important;
+  padding: 1rem !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: space-between !important;
+  gap: 0.5rem !important;
+  box-sizing: border-box !important;
+}
+
+/* Style the individual grid items */
+.css-17fpwt7-MuiGrid-root {
+  flex: 1 1 calc(25% - 0.375rem) !important;
+  max-width: calc(25% - 0.375rem) !important;
+  min-width: calc(25% - 0.375rem) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Force all dashboard containers to use optimal width */
+.dashboard-container,
+.dashboard-content,
+.main-dashboard,
+[class*="dashboard"],
+[class*="Dashboard"] {
+  width: 100%;
+  max-width: 70%;
+  padding: 1rem;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* Custom flexbox grid system for equal width cards */
+.equal-width-grid {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  max-width: 70%;
+  gap: 0.5rem;
+  margin: 0 auto;
+  padding: 1rem;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+.equal-width-grid-item {
+  flex: 1 1 calc(33.333% - 0.333rem);
+  min-width: calc(33.333% - 0.333rem);
+  max-width: calc(33.333% - 0.333rem);
+  margin: 0;
+}
+
+.equal-width-grid-item-4 {
+  flex: 1 1 calc(25% - 0.375rem);
+  min-width: calc(25% - 0.375rem);
+  max-width: calc(25% - 0.375rem);
+}
+
+.equal-width-grid-item-2 {
+  flex: 1 1 calc(50% - 0.25rem);
+  min-width: calc(50% - 0.25rem);
+  max-width: calc(50% - 0.25rem);
+}
+
+.equal-width-grid-item-1 {
+  flex: 1 1 100%;
+  min-width: 100%;
+  max-width: 100%;
+}
+
+/* Force full width on any wrapper elements */
+.app-content,
+.page-content,
+.dashboard-wrapper,
+.content-wrapper,
+main,
+[role="main"] {
+  width: 100%;
+  max-width: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+/* Responsive utilities */
+@media (max-width: 1024px) {
+  .css-17fpwt7-MuiGrid-root {
+    flex: 1 1 calc(50% - 0.25rem) !important;
+    max-width: calc(50% - 0.25rem) !important;
+    min-width: calc(50% - 0.25rem) !important;
+  }
+  
+  .equal-width-grid-item-4 {
+    flex: 1 1 calc(50% - 0.25rem);
+    min-width: calc(50% - 0.25rem);
+    max-width: calc(50% - 0.25rem);
+  }
+}
+
+@media (max-width: 768px) {
+  .css-1qouitu-MuiGrid-root,
+  .css-1u8xl8z-MuiGrid-root {
+    max-width: 95% !important;
+    padding: 0.75rem !important;
+  }
+  
+  .css-17fpwt7-MuiGrid-root {
+    flex: 1 1 calc(50% - 0.25rem) !important;
+    max-width: calc(50% - 0.25rem) !important;
+    min-width: calc(50% - 0.25rem) !important;
+  }
+  
+  .equal-width-grid-item {
+    flex: 1 1 calc(50% - 0.25rem);
+    min-width: calc(50% - 0.25rem);
+    max-width: calc(50% - 0.25rem);
+  }
+  
+  .equal-width-grid-item-4 {
+    flex: 1 1 calc(50% - 0.25rem);
+    min-width: calc(50% - 0.25rem);
+    max-width: calc(50% - 0.25rem);
+  }
+}
+
+@media (max-width: 480px) {
+  .css-1qouitu-MuiGrid-root,
+  .css-1u8xl8z-MuiGrid-root {
+    max-width: 100% !important;
+    padding: 0.5rem !important;
+  }
+  
+  .css-17fpwt7-MuiGrid-root {
+    flex: 1 1 100% !important;
+    max-width: 100% !important;
+    min-width: 100% !important;
+  }
+  
+  .equal-width-grid-item,
+  .equal-width-grid-item-4,
+  .equal-width-grid-item-2 {
+    flex: 1 1 100%;
+    min-width: 100%;
+    max-width: 100%;
   }
 }

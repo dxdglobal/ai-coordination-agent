@@ -1,0 +1,226 @@
+/* =====================================================
+   FULL SCREEN BUTTON COMPONENT STYLES
+   ===================================================== */
+
+.fullscreen-button-container {
+  position: fixed;
+  z-index: 2100;
+  transition: all 0.3s ease;
+}
+
+/* Position variants */
+.fullscreen-button-container.top-right {
+  top: 1rem;
+  right: 1rem;
+}
+
+.fullscreen-button-container.top-left {
+  top: 1rem;
+  left: 1rem;
+}
+
+.fullscreen-button-container.bottom-right {
+  bottom: 1rem;
+  right: 1rem;
+}
+
+.fullscreen-button-container.bottom-left {
+  bottom: 1rem;
+  left: 1rem;
+}
+
+/* Main button styles */
+.fullscreen-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(26, 26, 26, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.87);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  font-size: 0.9rem;
+  font-weight: 500;
+  min-height: 44px;
+  user-select: none;
+}
+
+.fullscreen-button:hover {
+  background: rgba(100, 108, 255, 0.2);
+  border-color: rgba(100, 108, 255, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.fullscreen-button:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.fullscreen-button.active {
+  background: rgba(100, 108, 255, 0.3);
+  border-color: rgba(100, 108, 255, 0.7);
+  color: #ffffff;
+}
+
+.fullscreen-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(100, 108, 255, 0.3);
+}
+
+/* Icon styles */
+.fullscreen-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.fullscreen-button:hover .fullscreen-icon {
+  transform: scale(1.1);
+}
+
+.fullscreen-icon svg {
+  stroke: currentColor;
+  transition: stroke 0.2s ease;
+}
+
+/* Label styles */
+.fullscreen-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Keyboard hint */
+.keyboard-hint {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  justify-content: center;
+}
+
+.fullscreen-button-container:hover .keyboard-hint {
+  opacity: 1;
+}
+
+.shortcut-key {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  min-width: 24px;
+  text-align: center;
+}
+
+/* Responsive behavior */
+@media (max-width: 768px) {
+  .fullscreen-button-container.top-right,
+  .fullscreen-button-container.bottom-right {
+    right: 0.5rem;
+  }
+  
+  .fullscreen-button-container.top-left,
+  .fullscreen-button-container.bottom-left {
+    left: 0.5rem;
+  }
+  
+  .fullscreen-button {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.8rem;
+  }
+  
+  .fullscreen-label {
+    display: none; /* Hide label on mobile */
+  }
+  
+  .keyboard-hint {
+    display: none; /* Hide keyboard hints on mobile */
+  }
+}
+
+@media (max-width: 480px) {
+  .fullscreen-button {
+    padding: 0.5rem;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    justify-content: center;
+  }
+  
+  .fullscreen-label {
+    display: none;
+  }
+}
+
+/* Animation for fullscreen state changes */
+@keyframes fullscreen-activate {
+  0% {
+    transform: scale(1);
+    background: rgba(26, 26, 26, 0.9);
+  }
+  50% {
+    transform: scale(1.1);
+    background: rgba(100, 108, 255, 0.4);
+  }
+  100% {
+    transform: scale(1);
+    background: rgba(100, 108, 255, 0.3);
+  }
+}
+
+.fullscreen-button.active {
+  animation: fullscreen-activate 0.5s ease;
+}
+
+/* Pulse effect for attention */
+.fullscreen-button-container.pulse .fullscreen-button {
+  animation: button-pulse 2s infinite;
+}
+
+@keyframes button-pulse {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  50% {
+    box-shadow: 0 8px 25px rgba(100, 108, 255, 0.4);
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .fullscreen-button {
+    border-width: 2px;
+    background: rgba(0, 0, 0, 0.9);
+    color: #ffffff;
+  }
+  
+  .fullscreen-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .fullscreen-button,
+  .fullscreen-icon,
+  .keyboard-hint {
+    transition: none;
+  }
+  
+  .fullscreen-button.active {
+    animation: none;
+  }
+  
+  .fullscreen-button-container.pulse .fullscreen-button {
+    animation: none;
+  }
+}
