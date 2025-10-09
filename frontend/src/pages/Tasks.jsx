@@ -47,103 +47,265 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
-import { useAPI } from '../context/APIContext'
 import SemanticSearch from '../components/SemanticSearch'
 
 const Tasks = () => {
-  const { taskAPI, projectAPI, loading, error, setError } = useAPI()
   const [tasks, setTasks] = useState([])
-  const [projects, setProjects] = useState([])
-  const [openComments, setOpenComments] = useState({})
-  const [selectedTask, setSelectedTask] = useState(null)
-  const [comments, setComments] = useState({})
-  const [newComment, setNewComment] = useState('')
+  const [allTasks, setAllTasks] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [error, setError] = useState('')
   const [currentTab, setCurrentTab] = useState(0)
-  const [filters, setFilters] = useState({
-    project_id: '',
-    status: '',
-    assignee: '',
-    search: '',
-  })
+  const [stats, setStats] = useState(null)
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [totalCount, setTotalCount] = useState(0)
+  const PAGE_SIZE = 50 // Load 50 tasks at a time
+  
+  // Filter states
+  const [currentStatusFilter, setCurrentStatusFilter] = useState('active') // Default to active
+  const [currentPriorityFilter, setCurrentPriorityFilter] = useState(null)
+  const [titleSearchQuery, setTitleSearchQuery] = useState('')
+  const [isSearchMode, setIsSearchMode] = useState(false)
+  const [searchResults, setSearchResults] = useState(null)
 
   // Chat system state
   const [chatMessages, setChatMessages] = useState([])
   const [currentMessage, setCurrentMessage] = useState('')
   const [isChatLoading, setIsChatLoading] = useState(false)
-  const [showChat, setShowChat] = useState(false)
+  const [selectedTask, setSelectedTask] = useState(null)
+  const [projects, setProjects] = useState([])
   const chatEndRef = useRef(null)
 
+  const API_BASE_URL = 'http://127.0.0.1:5001'
+
   const statusOptions = [
+    { value: 'not_started', label: 'Not Started', color: 'default' },
     { value: 'todo', label: 'To Do', color: 'default' },
     { value: 'in_progress', label: 'In Progress', color: 'primary' },
     { value: 'review', label: 'In Review', color: 'warning' },
     { value: 'done', label: 'Done', color: 'success' },
     { value: 'blocked', label: 'Blocked', color: 'error' },
+    { value: 'urgent', label: 'Urgent', color: 'error' },
+    { value: 'overdue', label: 'Overdue', color: 'error' },
   ]
 
   const priorityOptions = [
-    { value: 'low', label: 'Low', color: 'default' },
-    { value: 'medium', label: 'Medium', color: 'primary' },
-    { value: 'high', label: 'High', color: 'warning' },
+    { value: 'low', label: 'Low', color: 'success' },
+    { value: 'medium', label: 'Medium', color: 'warning' },
+    { value: 'high', label: 'High', color: 'error' },
     { value: 'urgent', label: 'Urgent', color: 'error' },
   ]
 
   useEffect(() => {
-    loadTasks()
-    loadProjects()
-  }, [filters])
+    loadTasksWithPagination(1, true) // Load first page
+    loadTaskStats()
+  }, [])
 
-  const loadTasks = async () => {
+  useEffect(() => {
+    // Reset pagination when filters change
+    if (currentStatusFilter || currentPriorityFilter || titleSearchQuery.trim()) {
+      setCurrentPage(1)
+      setTasks([])
+      loadTasksWithPagination(1, true)
+    }
+  }, [currentStatusFilter, currentPriorityFilter, titleSearchQuery])
+
+  // Paginated task loading with server-side filtering
+  const loadTasksWithPagination = async (page = 1, reset = false) => {
     try {
-      const cleanFilters = Object.fromEntries(
-        Object.entries(filters).filter(([_, value]) => value !== '')
-      )
-      const data = await taskAPI.getAll(cleanFilters)
-      setTasks(data)
+      if (reset) {
+        setLoading(true)
+        setTasks([])
+        setCurrentPage(1)
+      } else {
+        setLoadingMore(true)
+      }
+      
+      setError('')
+      
+      // Build query parameters
+      const params = new URLSearchParams()
+      
+      // For overdue tasks, don't limit the results to show all overdue tasks
+      if (currentStatusFilter === 'overdue') {
+        params.append('limit', '1000') // High limit to get all overdue tasks
+        params.append('offset', '0')   // Always start from beginning for overdue
+      } else {
+        params.append('limit', PAGE_SIZE.toString())
+        params.append('offset', ((page - 1) * PAGE_SIZE).toString())
+      }
+      
+      // Apply filters
+      if (currentStatusFilter && currentStatusFilter !== 'all') {
+        if (currentStatusFilter === 'active') {
+          // For active filter, include not_started, todo, in_progress, review
+          params.append('status', 'not_started,todo,in_progress,review')
+        } else {
+          params.append('status', currentStatusFilter)
+        }
+      }
+      
+      if (currentPriorityFilter && currentPriorityFilter !== 'all') {
+        params.append('priority', currentPriorityFilter)
+      }
+      
+      if (titleSearchQuery.trim()) {
+        params.append('title', titleSearchQuery.trim())
+      }
+      
+      params.append('sort_by', 'id')
+      params.append('sort_order', 'DESC')
+      
+      const response = await fetch(`${API_BASE_URL}/api/crm/tasks/search?${params.toString()}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.tasks) {
+          console.log(`✅ Loaded page ${page}: ${data.tasks.length} tasks`)
+          
+          if (reset) {
+            setTasks(data.tasks)
+            setCurrentPage(1)
+          } else {
+            setTasks(prev => [...prev, ...data.tasks])
+          }
+          
+          // Update pagination state
+          if (currentStatusFilter === 'overdue') {
+            // For overdue tasks, load all at once
+            setHasMore(false)
+            setTotalCount(data.tasks.length)
+            setCurrentPage(1)
+          } else {
+            // Normal pagination behavior
+            setHasMore(data.tasks.length === PAGE_SIZE)
+            setTotalCount(data.total || data.tasks.length)
+            setCurrentPage(page)
+          }
+          
+          // Update search mode
+          const hasFilters = currentStatusFilter !== 'active' || currentPriorityFilter || titleSearchQuery.trim()
+          setIsSearchMode(hasFilters)
+          
+          return
+        } else {
+          throw new Error(data.error || 'Failed to fetch tasks')
+        }
+      } else {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
     } catch (err) {
       console.error('Failed to load tasks:', err)
+      setError(`Failed to load tasks: ${err.message}`)
+    } finally {
+      setLoading(false)
+      setLoadingMore(false)
     }
   }
 
-  const loadProjects = async () => {
+  const loadTaskStats = async () => {
     try {
-      const data = await projectAPI.getAll()
-      setProjects(data)
+      const response = await fetch(`${API_BASE_URL}/api/crm/tasks/stats`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          console.log('✅ Loaded task statistics from CRM database')
+          setStats(data.stats)
+          return
+        }
+      }
+      
+      console.warn('Failed to load stats from CRM, using fallback')
     } catch (err) {
-      console.error('Failed to load projects:', err)
+      console.log('Error loading task stats:', err)
     }
-  }
-
-  const loadComments = async (taskId) => {
-    try {
-      const data = await taskAPI.getComments(taskId)
-      setComments(prev => ({ ...prev, [taskId]: data }))
-    } catch (err) {
-      console.error('Failed to load comments:', err)
-    }
-  }
-
-  const handleAddComment = async (taskId) => {
-    if (!newComment.trim()) return
     
-    try {
-      await taskAPI.addComment(taskId, { content: newComment })
-      setNewComment('')
-      await loadComments(taskId)
-    } catch (err) {
-      console.error('Failed to add comment:', err)
-    }
-  }
-
-  const toggleComments = async (taskId) => {
-    if (openComments[taskId]) {
-      setOpenComments(prev => ({ ...prev, [taskId]: false }))
-    } else {
-      setOpenComments(prev => ({ ...prev, [taskId]: true }))
-      if (!comments[taskId]) {
-        await loadComments(taskId)
+    // Fallback mock stats
+    const mockStats = {
+      total_tasks: 10,
+      active_tasks: 6,
+      completed_tasks: 2,
+      overdue_tasks: 1,
+      tasks_by_status: {
+        todo: 2,
+        in_progress: 2,
+        review: 2,
+        done: 2,
+        blocked: 1,
+        urgent: 1
+      },
+      tasks_by_priority: {
+        low: 2,
+        medium: 3,
+        high: 3,
+        urgent: 2
       }
     }
+    
+    setStats(mockStats)
+  }
+
+  const filterByStatus = (status) => {
+    setCurrentStatusFilter(status)
+    // Pagination will trigger reload via useEffect
+  }
+
+  // Load more tasks (pagination)
+  const loadMoreTasks = () => {
+    if (!loadingMore && hasMore) {
+      loadTasksWithPagination(currentPage + 1, false)
+    }
+  }
+
+  const filterByPriority = (priority) => {
+    setCurrentPriorityFilter(priority)
+    // Pagination will trigger reload via useEffect
+  }
+
+  const searchByTitle = (searchTerm) => {
+    setTitleSearchQuery(searchTerm)
+    // Pagination will trigger reload via useEffect with debounce
+  }
+
+  const handleClearSearch = () => {
+    setIsSearchMode(false)
+    setSearchResults(null)
+    setCurrentStatusFilter('active') // Return to active tasks
+    setCurrentPriorityFilter(null)
+    setTitleSearchQuery('')
+    // This will trigger reload via useEffect
+  }
+
+  const showActiveTasks = () => {
+    setCurrentStatusFilter('active')
+    setCurrentPriorityFilter(null)
+    setTitleSearchQuery('')
+    setIsSearchMode(false)
+    // This will trigger reload via useEffect
+  }
+
+  const showAllTasks = () => {
+    setCurrentStatusFilter('all')
+    setCurrentPriorityFilter(null)
+    setTitleSearchQuery('')
+    setIsSearchMode(false)
+    // This will trigger reload via useEffect
+  }
+
+  const showOverdueTasks = () => {
+    setCurrentStatusFilter('overdue')
+    setCurrentPriorityFilter(null)
+    setTitleSearchQuery('')
+    setIsSearchMode(true)
+    // This will trigger reload via useEffect
   }
 
   const getStatusColor = (status) => {
@@ -242,10 +404,38 @@ const Tasks = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Container maxWidth="lg">
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h4">Tasks</Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, mt: 10 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="h4">Tasks</Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button 
+                variant={currentStatusFilter === 'active' ? "contained" : "outlined"}
+                size="small"
+                onClick={showActiveTasks}
+                color="primary"
+              >
+                Active ({stats?.active_tasks || 0})
+              </Button>
+              <Button 
+                variant={currentStatusFilter === 'all' ? "contained" : "outlined"}
+                size="small"
+                onClick={showAllTasks}
+                color="secondary"
+              >
+                All ({stats?.total_tasks || 0})
+              </Button>
+              <Button 
+                variant={currentStatusFilter === 'overdue' ? "contained" : "outlined"}
+                size="small"
+                onClick={showOverdueTasks}
+                color="warning"
+              >
+                Overdue ({stats?.overdue_tasks || 0})
+              </Button>
+            </Box>
+          </Box>
           <Typography variant="body2" color="text.secondary">
-            View and manage task information
+            View and manage task information • Page {currentPage} • {tasks.length} loaded
           </Typography>
         </Box>
 
@@ -258,24 +448,14 @@ const Tasks = () => {
         <Paper sx={{ mb: 3 }}>
           <Tabs 
             value={currentTab} 
-            onChange={(e, newValue) => {
-              setCurrentTab(newValue)
-              if (newValue === 0) {
-                setSelectedTask(null)
-              }
-            }}
+            onChange={(e, newValue) => setCurrentTab(newValue)}
             indicatorColor="primary"
             textColor="primary"
             variant="fullWidth"
           >
             <Tab 
               icon={<FilterList />} 
-              label="Traditional Search" 
-              iconPosition="start"
-            />
-            <Tab 
-              icon={<Psychology />} 
-              label="Semantic Search" 
+              label="Task List" 
               iconPosition="start"
             />
             <Tab 
@@ -288,188 +468,381 @@ const Tasks = () => {
 
         {currentTab === 0 && (
           <>
-            <Card sx={{ mb: 3 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>Filters</Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Autocomplete
-                      options={projects}
-                      getOptionLabel={(option) => option.name || ''}
-                      value={projects.find(p => p.id === filters.project_id) || null}
-                      onChange={(e, newValue) => setFilters({ ...filters, project_id: newValue?.id || '' })}
-                      renderInput={(params) => <TextField {...params} label="Project" variant="outlined" />}
-                    />
-                  </Grid>
-                  
-                  <Grid item xs={12} sm={6} md={3}>
-                    <FormControl fullWidth variant="outlined">
-                      <InputLabel>Status</InputLabel>
-                      <Select
-                        value={filters.status}
-                        label="Status"
-                        onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+            {/* Quick Status Filters */}
+            <Paper sx={{ p: 2, mb: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Quick Status Filters
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                <Chip
+                  label="All Tasks"
+                  onClick={() => filterByStatus(null)}
+                  variant={currentStatusFilter === null ? "filled" : "outlined"}
+                  color="primary"
+                />
+                {statusOptions.map((status) => (
+                  <Chip
+                    key={status.value}
+                    label={status.label}
+                    onClick={() => filterByStatus(status.value)}
+                    variant={currentStatusFilter === status.value ? "filled" : "outlined"}
+                    color={status.color}
+                  />
+                ))}
+              </Box>
+            </Paper>
+
+            {/* Priority Filters */}
+            <Paper sx={{ p: 2, mb: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Priority Filters
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                <Chip
+                  label="All Priorities"
+                  onClick={() => filterByPriority(null)}
+                  variant={currentPriorityFilter === null ? "filled" : "outlined"}
+                  color="primary"
+                />
+                {priorityOptions.map((priority) => (
+                  <Chip
+                    key={priority.value}
+                    label={priority.label}
+                    onClick={() => filterByPriority(priority.value)}
+                    variant={currentPriorityFilter === priority.value ? "filled" : "outlined"}
+                    color={priority.color}
+                  />
+                ))}
+              </Box>
+            </Paper>
+
+            {/* Search by Title */}
+            <Paper sx={{ p: 2, mb: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Search by Task Title
+              </Typography>
+              <TextField
+                fullWidth
+                variant="outlined"
+                placeholder="Enter task title to search..."
+                value={titleSearchQuery}
+                onChange={(e) => {
+                  setTitleSearchQuery(e.target.value)
+                  searchByTitle(e.target.value)
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Comment />
+                    </InputAdornment>
+                  ),
+                  endAdornment: titleSearchQuery && (
+                    <InputAdornment position="end">
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => {
+                          setTitleSearchQuery('')
+                          searchByTitle('')
+                        }}
                       >
-                        <MenuItem value="">All Statuses</MenuItem>
-                        {statusOptions.map((status) => (
-                          <MenuItem key={status.value} value={status.value}>
-                            {status.label}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  
-                  <Grid item xs={12} sm={6} md={3}>
-                    <TextField
-                      label="Assignee"
-                      variant="outlined"
-                      fullWidth
-                      value={filters.assignee}
-                      onChange={(e) => setFilters({ ...filters, assignee: e.target.value })}
-                    />
-                  </Grid>
-                  
-                  <Grid item xs={12} sm={6} md={3}>
-                    <TextField
-                      label="Search"
-                      variant="outlined"
-                      fullWidth
-                      value={filters.search}
-                      onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                    />
-                  </Grid>
+                        Clear
+                      </Button>
+                    </InputAdornment>
+                  )
+                }}
+              />
+            </Paper>
+
+            {/* Filter Status Display */}
+            <Paper sx={{ p: 2, mb: 3, bgcolor: 'background.default' }}>
+              <Typography variant="body2" color="textSecondary">
+                <strong>
+                  Showing {tasks.length} 
+                  {currentStatusFilter === 'active' ? ' active' : 
+                   currentStatusFilter === 'all' ? ' total' :
+                   currentStatusFilter === 'overdue' ? ' overdue' :
+                   isSearchMode ? ' filtered' : ''} tasks
+                </strong>
+                {isSearchMode && (
+                  <>
+                    {currentStatusFilter && currentStatusFilter !== 'active' && currentStatusFilter !== 'all' && (
+                      <span> • Status: {statusOptions.find(s => s.value === currentStatusFilter)?.label}</span>
+                    )}
+                    {currentPriorityFilter && (
+                      <span> • Priority: {priorityOptions.find(p => p.value === currentPriorityFilter)?.label}</span>
+                    )}
+                    {titleSearchQuery && (
+                      <span> • Title contains: "{titleSearchQuery}"</span>
+                    )}
+                  </>
+                )}
+                {(isSearchMode || currentStatusFilter === 'all' || currentStatusFilter === 'overdue') && (
+                  <Button
+                    size="small"
+                    onClick={isSearchMode ? handleClearSearch : showActiveTasks}
+                    sx={{ ml: 2 }}
+                  >
+                    {isSearchMode ? 'Clear Filters' : 'Show Active Tasks'}
+                  </Button>
+                )}
+                
+                {hasMore && (
+                  <span> • Page {currentPage} • More available</span>
+                )}
+                {!hasMore && tasks.length > 0 && (
+                  <span> • All loaded</span>
+                )}
+              </Typography>
+            </Paper>
+
+            {/* Statistics Cards */}
+            {stats && !isSearchMode && (
+              <Grid container spacing={3} sx={{ mb: 4 }}>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Schedule sx={{ color: 'primary.main', mr: 2 }} />
+                        <Box>
+                          <Typography variant="h4">{stats.total_tasks}</Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Total Tasks
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
                 </Grid>
-              </CardContent>
-            </Card>
+                
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Flag sx={{ color: 'success.main', mr: 2 }} />
+                        <Box>
+                          <Typography variant="h4">{stats.active_tasks}</Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Active Tasks
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Person sx={{ color: 'success.main', mr: 2 }} />
+                        <Box>
+                          <Typography variant="h4">{stats.completed_tasks}</Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Completed
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card 
+                    sx={{ 
+                      cursor: 'pointer',
+                      transition: 'transform 0.2s, box-shadow 0.2s',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: 4,
+                      }
+                    }}
+                    onClick={showOverdueTasks}
+                  >
+                    <CardContent>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Schedule sx={{ color: 'warning.main', mr: 2 }} />
+                        <Box>
+                          <Typography variant="h4">{stats.overdue_tasks}</Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Overdue
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+            )}
 
             {loading ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                <LinearProgress sx={{ width: '100%', maxWidth: 400 }} />
+                <CircularProgress />
               </Box>
             ) : tasks.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 8 }}>
+                <Schedule sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
                 <Typography variant="h6" color="text.secondary" gutterBottom>
-                  No tasks found
+                  {isSearchMode ? 'No tasks found matching your filters' : 'No tasks found'}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Tasks will appear here when they are available
+                  {isSearchMode ? 'Try adjusting your search terms' : 'Tasks will appear here when they are available'}
                 </Typography>
               </Box>
             ) : (
-              <Grid container spacing={3}>
+              <>
+                {/* Task Grid */}
+              <Box 
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: {
+                    xs: '1fr',
+                    sm: 'repeat(2, 1fr)',
+                    md: 'repeat(3, 1fr)',
+                    lg: 'repeat(4, 1fr)'
+                  },
+                  gap: 3,
+                  width: '100%',
+                  gridAutoRows: 'auto',
+                  alignItems: 'start',
+                  minHeight: 'auto',
+                  maxHeight: 'none',
+                  overflow: 'visible',
+                  marginBottom: '0px'
+                }}
+              >
                 {tasks.map((task) => (
-                  <Grid item xs={12} sm={6} md={4} key={task.id}>
-                    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                      <CardContent sx={{ flexGrow: 1 }}>
-                        <Typography gutterBottom variant="h6" component="div">
-                          {task.title}
+                  <Card 
+                    key={task.id}
+                    sx={{ 
+                      display: 'flex', 
+                      flexDirection: 'column',
+                      transition: 'transform 0.2s, box-shadow 0.2s',
+                      minHeight: 'auto',
+                      height: 'auto',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: 4,
+                      }
+                    }}
+                  >
+                    <CardContent sx={{ flexGrow: 1 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                        <Typography gutterBottom variant="h6" component="div" sx={{ 
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                        }}>
+                          {task.title || 'Untitled Task'}
                         </Typography>
-                        
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                          {task.description || 'No description'}
-                        </Typography>
-                        
-                        <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+                        <Chip
+                          label={task.priority || 'medium'}
+                          color={getPriorityColor(task.priority)}
+                          size="small"
+                        />
+                      </Box>
+
+                      <Typography 
+                        variant="body2" 
+                        color="text.secondary" 
+                        sx={{ 
+                          mb: 2,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 3,
+                          WebkitBoxOrient: 'vertical',
+                          minHeight: '60px'
+                        }}
+                      >
+                        {task.description || 'No description available'}
+                      </Typography>
+
+                      <Box sx={{ mb: 2 }}>
+                        <Chip
+                          label={task.status || 'todo'}
+                          color={getStatusColor(task.status)}
+                          size="small"
+                          sx={{ mr: 1, mb: 1 }}
+                        />
+                        {task.assignee && (
                           <Chip
-                            label={task.status?.replace('_', ' ')}
-                            color={getStatusColor(task.status)}
+                            label={`Assigned: ${task.assignee}`}
+                            color="default"
                             size="small"
+                            variant="outlined"
                           />
-                          {task.priority && (
-                            <Chip
-                              label={task.priority}
-                              color={getPriorityColor(task.priority)}
-                              size="small"
-                              variant="outlined"
-                            />
-                          )}
-                        </Box>
-                        
-                        <List dense>
-                          {task.assignee && (
-                            <ListItem sx={{ px: 0 }}>
-                              <ListItemIcon sx={{ minWidth: 32 }}>
-                                <Person fontSize="small" />
-                              </ListItemIcon>
-                              <ListItemText 
-                                primary={task.assignee}
-                                primaryTypographyProps={{ variant: 'body2' }}
-                              />
-                            </ListItem>
-                          )}
-                          
-                          <ListItem sx={{ px: 0 }}>
-                            <ListItemIcon sx={{ minWidth: 32 }}>
-                              <Schedule fontSize="small" />
-                            </ListItemIcon>
-                            <ListItemText 
-                              primary={`Est: ${formatDuration(task.estimated_hours)} | Actual: ${formatDuration(task.actual_hours)}`}
-                              primaryTypographyProps={{ variant: 'body2' }}
-                            />
-                          </ListItem>
-                        </List>
-                      </CardContent>
-                      
-                      <Divider />
-                      
-                      <CardActions>
-                        <Button 
-                          size="small" 
-                          startIcon={<Comment />}
-                          onClick={() => toggleComments(task.id)}
-                        >
-                          Comments ({task.comment_count || 0})
-                          {openComments[task.id] ? <ExpandLess /> : <ExpandMore />}
-                        </Button>
-                      </CardActions>
-                      
-                      <Collapse in={openComments[task.id]} timeout="auto" unmountOnExit>
-                        <CardContent sx={{ pt: 0 }}>
-                          <Divider sx={{ mb: 2 }} />
-                          <Typography variant="subtitle2" gutterBottom>
-                            Comments
-                          </Typography>
-                          
-                          {comments[task.id]?.map((comment) => (
-                            <Box key={comment.id} sx={{ mb: 2, p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
-                              <Typography variant="body2">
-                                {comment.content}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {formatDate(comment.created_at)}
-                              </Typography>
-                            </Box>
-                          ))}
-                          
-                          <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
-                            <TextField
-                              size="small"
-                              fullWidth
-                              placeholder="Add a comment..."
-                              value={newComment}
-                              onChange={(e) => setNewComment(e.target.value)}
-                              onKeyPress={(e) => {
-                                if (e.key === 'Enter') {
-                                  handleAddComment(task.id)
-                                }
-                              }}
-                            />
-                            <Button 
-                              size="small"
-                              variant="outlined"
-                              onClick={() => handleAddComment(task.id)}
-                              disabled={!newComment.trim()}
-                            >
-                              Add
-                            </Button>
+                        )}
+                      </Box>
+
+                      <Divider sx={{ my: 2 }} />
+
+                      <Grid container spacing={1}>
+                        <Grid item xs={6}>
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Schedule sx={{ fontSize: 16, mr: 0.5, color: 'text.secondary' }} />
+                            <Typography variant="body2" color="text.secondary">
+                              {formatDuration(task.estimated_hours)}
+                            </Typography>
                           </Box>
-                        </CardContent>
-                      </Collapse>
-                    </Card>
-                  </Grid>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Person sx={{ fontSize: 16, mr: 0.5, color: 'text.secondary' }} />
+                            <Typography variant="body2" color="text.secondary">
+                              {task.assignee || 'Unassigned'}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={12}>
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Flag sx={{ fontSize: 16, mr: 0.5, color: 'text.secondary' }} />
+                            <Typography variant="body2" color="text.secondary">
+                              Due: {formatDate(task.end_time)}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      </Grid>
+                    </CardContent>
+
+                    <CardActions>
+                      <Button size="small" color="primary">
+                        View Details
+                      </Button>
+                      <Button size="small" color="secondary">
+                        Edit
+                      </Button>
+                    </CardActions>
+                  </Card>
                 ))}
-              </Grid>
+              </Box>
+              
+              {/* Load More Button and Pagination Controls */}
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 4, mb: 2 }}>
+                {loadingMore && (
+                  <CircularProgress size={24} sx={{ mr: 2 }} />
+                )}
+                
+                {hasMore && !loading && (
+                  <Button
+                    variant="outlined"
+                    onClick={loadMoreTasks}
+                    disabled={loadingMore}
+                    sx={{ mr: 2 }}
+                  >
+                    {loadingMore ? 'Loading...' : `Load More Tasks (${PAGE_SIZE} more)`}
+                  </Button>
+                )}
+                
+                {!hasMore && tasks.length > 0 && (
+                  <Typography variant="body2" color="text.secondary">
+                    All available tasks loaded ({tasks.length} total)
+                  </Typography>
+                )}
+              </Box>
+              </>
             )}
           </>
         )}

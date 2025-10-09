@@ -29,10 +29,16 @@ def create_app():
     from routes.api import api_bp
     from routes.integrations import integrations_bp
     from routes.ai import ai_bp
+    from routes.auth import auth_bp
+    from routes.projects_api import projects_bp
+    from routes.crm_tasks_api import crm_tasks_api
     
     app.register_blueprint(api_bp, url_prefix='/api')
     app.register_blueprint(integrations_bp, url_prefix='/integrations')
     app.register_blueprint(ai_bp, url_prefix='/ai')
+    app.register_blueprint(auth_bp, url_prefix='/api/auth')
+    app.register_blueprint(projects_bp, url_prefix='/api/projects')
+    app.register_blueprint(crm_tasks_api, url_prefix='/api')
     
     # Health check endpoint
     @app.route('/health')

@@ -4,8 +4,15 @@ from urllib.parse import quote_plus
 
 load_dotenv()
 
+# Database URL for direct psycopg2 connections
+DATABASE_URL = os.environ.get('DATABASE_URL') or 'postgresql://localhost/ai_coordination_agent'
+
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
+    
+    # JWT Configuration
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or 'jwt-secret-key-change-in-production'
+    JWT_ACCESS_TOKEN_EXPIRES = int(os.environ.get('JWT_ACCESS_TOKEN_EXPIRES', 24))  # hours
     
     # Database Configuration
     DATABASE_TYPE = os.environ.get('DATABASE_TYPE', 'sqlite')

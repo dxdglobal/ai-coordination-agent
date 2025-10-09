@@ -44,8 +44,8 @@ html {
   margin: 0;
   padding: 0;
   width: 100vw;
-  height: 100vh;
-  overflow: hidden;
+  height: auto !important;
+  overflow-y: auto !important;
   background: var(--bg-primary);
 }
 
@@ -53,8 +53,8 @@ body {
   margin: 0;
   padding: 0;
   width: 100vw;
-  height: 100vh;
-  overflow: hidden;
+  height: auto !important;
+  overflow: auto !important;
   background: var(--bg-primary);
   font-family: inherit;
   color: var(--text-primary);

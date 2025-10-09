@@ -364,7 +364,7 @@ const lightTheme = createTheme({
               <ProtectedRoute>
                 <ThemeProvider theme={theme}>
                   <CssBaseline />
-                  <Box sx={{ flexGrow: 1, minHeight: '100vh', backgroundColor: '#0f0f0f' }}>
+                  <Box sx={{ flexGrow: 1, minHeight: '100vh' }}>
                     <GrokNavigation />
                     <ChatReal />
                   </Box>
@@ -377,7 +377,7 @@ const lightTheme = createTheme({
               <ProtectedRoute>
                 <ThemeProvider theme={theme}>
                   <CssBaseline />
-                  <Box sx={{ flexGrow: 1, minHeight: '100vh', backgroundColor: '#0f0f0f' }}>
+                  <Box sx={{ flexGrow: 1, minHeight: '100vh'}}>
                     <GrokNavigation />
                     <Dashboard />
                   </Box>
@@ -389,7 +389,7 @@ const lightTheme = createTheme({
               <ProtectedRoute>
                 <ThemeProvider theme={theme}>
                   <CssBaseline />
-                  <Box sx={{ flexGrow: 1, minHeight: '100vh', backgroundColor: '#0f0f0f' }}>
+                  <Box sx={{ flexGrow: 1, minHeight: '100vh' }}>
                     <GrokNavigation />
                     <Projects />
                   </Box>
@@ -401,7 +401,7 @@ const lightTheme = createTheme({
               <ProtectedRoute>
                 <ThemeProvider theme={theme}>
                   <CssBaseline />
-                  <Box sx={{ flexGrow: 1, minHeight: '100vh', backgroundColor: '#0f0f0f' }}>
+                  <Box sx={{ flexGrow: 1, minHeight: '100vh' }}>
                     <GrokNavigation />
                     <Tasks />
                   </Box>
@@ -413,7 +413,7 @@ const lightTheme = createTheme({
               <ProtectedRoute>
                 <ThemeProvider theme={theme}>
                   <CssBaseline />
-                  <Box sx={{ flexGrow: 1, minHeight: '100vh', backgroundColor: '#0f0f0f' }}>
+                  <Box sx={{ flexGrow: 1, minHeight: '100vh' }}>
                     <GrokNavigation />
                     <Integrations />
                   </Box>

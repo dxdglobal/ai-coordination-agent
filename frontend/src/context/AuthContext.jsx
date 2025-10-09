@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
 
   // API base URL
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5001'
 
   useEffect(() => {
     // Check if user is already logged in (token in localStorage)
@@ -33,9 +33,9 @@ export const AuthProvider = ({ children }) => {
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
         
         // Validate token with backend
-        const response = await axios.get(`${API_BASE_URL}/auth/me`)
+        const response = await axios.get(`${API_BASE_URL}/api/auth/verify`)
         
-        if (response.data.success) {
+        if (response.data.valid) {
           setUser(response.data.user)
           setIsAuthenticated(true)
         } else {
@@ -58,12 +58,12 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true)
       
-      const response = await axios.post(`${API_BASE_URL}/auth/login`, {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
         username,
         password
       })
 
-      if (response.data.success) {
+      if (response.data.token) {
         const { token, user } = response.data
         
         // Store token
@@ -78,13 +78,13 @@ export const AuthProvider = ({ children }) => {
         
         return { success: true, user }
       } else {
-        throw new Error(response.data.message || 'Login failed')
+        throw new Error(response.data.error || 'Login failed')
       }
     } catch (error) {
       console.error('Login error:', error)
       
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message)
+      if (error.response?.data?.error) {
+        throw new Error(error.response.data.error)
       } else if (error.response?.status === 401) {
         throw new Error('Invalid username or password')
       } else if (error.response?.status >= 500) {
@@ -100,7 +100,7 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       // Call logout endpoint if available
-      await axios.post(`${API_BASE_URL}/auth/logout`)
+      await axios.post(`${API_BASE_URL}/api/auth/logout`)
     } catch (error) {
       console.error('Logout error:', error)
     } finally {

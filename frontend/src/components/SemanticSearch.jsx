@@ -7,16 +7,11 @@ import {
   Box,
   Typography,
   Chip,
-  Grid,
   List,
   ListItem,
   ListItemText,
   ListItemIcon,
-  IconButton,
   Alert,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   Badge,
   Tooltip,
   CircularProgress,
@@ -24,15 +19,9 @@ import {
 import {
   Search,
   Psychology,
-  TrendingUp,
-  Schedule,
   Person,
   Flag,
-  ExpandMore,
   Star,
-  AutoAwesome,
-  Speed,
-  Assignment,
 } from '@mui/icons-material'
 import { useAPI } from '../context/APIContext'
 
@@ -42,45 +31,10 @@ const SemanticSearch = ({ onTaskSelect, maxHeight = '600px' }) => {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [isSearching, setIsSearching] = useState(false)
-  const [quickSearchResults, setQuickSearchResults] = useState({})
-  const [showQuickActions, setShowQuickActions] = useState(true)
   const [vectorStats, setVectorStats] = useState(null)
   
-  // Quick search suggestions
-  const quickSearches = [
-    {
-      id: 'high-priority',
-      label: 'High Priority',
-      icon: <Flag color="error" />,
-      query: 'high priority urgent critical tasks',
-      apiCall: () => taskAPI.getHighPriorityTasks()
-    },
-    {
-      id: 'overdue',
-      label: 'Overdue',
-      icon: <Schedule color="warning" />,
-      query: 'overdue tasks past deadline',
-      apiCall: () => taskAPI.getOverdueTasks()
-    },
-    {
-      id: 'blocked',
-      label: 'Blocked Tasks',
-      icon: <Assignment color="secondary" />,
-      query: 'blocked tasks need help assistance',
-      apiCall: () => taskAPI.semanticSearch('blocked tasks need help assistance')
-    },
-    {
-      id: 'ui-design',
-      label: 'UI/Design',
-      icon: <AutoAwesome color="primary" />,
-      query: 'design UI interface visual user experience',
-      apiCall: () => taskAPI.semanticSearch('design UI interface visual user experience')
-    }
-  ]
-
   useEffect(() => {
     loadVectorStats()
-    loadQuickSearchPreviews()
   }, [])
 
   const loadVectorStats = async () => {
@@ -92,22 +46,6 @@ const SemanticSearch = ({ onTaskSelect, maxHeight = '600px' }) => {
     }
   }
 
-  const loadQuickSearchPreviews = async () => {
-    const previews = {}
-    for (const quickSearch of quickSearches) {
-      try {
-        const result = await quickSearch.apiCall()
-        previews[quickSearch.id] = {
-          count: result.results?.length || result.total_found || 0,
-          topResult: result.results?.[0]
-        }
-      } catch (error) {
-        previews[quickSearch.id] = { count: 0, topResult: null }
-      }
-    }
-    setQuickSearchResults(previews)
-  }
-
   const handleSearch = async () => {
     if (!query.trim()) return
 
@@ -117,20 +55,6 @@ const SemanticSearch = ({ onTaskSelect, maxHeight = '600px' }) => {
       setResults(result.results || [])
     } catch (error) {
       console.error('Search failed:', error)
-      setResults([])
-    } finally {
-      setIsSearching(false)
-    }
-  }
-
-  const handleQuickSearch = async (quickSearch) => {
-    setQuery(quickSearch.query)
-    setIsSearching(true)
-    try {
-      const result = await quickSearch.apiCall()
-      setResults(result.results || [])
-    } catch (error) {
-      console.error('Quick search failed:', error)
       setResults([])
     } finally {
       setIsSearching(false)
@@ -207,46 +131,6 @@ const SemanticSearch = ({ onTaskSelect, maxHeight = '600px' }) => {
             {isSearching ? <CircularProgress size={20} /> : 'Search'}
           </Button>
         </Box>
-
-        {/* Quick Actions */}
-        {showQuickActions && (
-          <Accordion defaultExpanded sx={{ mb: 2, boxShadow: 1 }}>
-            <AccordionSummary expandIcon={<ExpandMore />}>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Speed sx={{ mr: 1 }} />
-                <Typography variant="subtitle2">Quick Searches</Typography>
-              </Box>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Grid container spacing={1}>
-                {quickSearches.map((quickSearch) => (
-                  <Grid item xs={6} sm={3} key={quickSearch.id}>
-                    <Button
-                      fullWidth
-                      variant="outlined"
-                      size="small"
-                      startIcon={quickSearch.icon}
-                      onClick={() => handleQuickSearch(quickSearch)}
-                      disabled={loading || isSearching}
-                      sx={{ justifyContent: 'flex-start', textTransform: 'none' }}
-                    >
-                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                        <Typography variant="caption" sx={{ fontWeight: 500 }}>
-                          {quickSearch.label}
-                        </Typography>
-                        {quickSearchResults[quickSearch.id] && (
-                          <Typography variant="caption" color="text.secondary">
-                            {quickSearchResults[quickSearch.id].count} found
-                          </Typography>
-                        )}
-                      </Box>
-                    </Button>
-                  </Grid>
-                ))}
-              </Grid>
-            </AccordionDetails>
-          </Accordion>
-        )}
 
         {/* Error Display */}
         {error && (

@@ -15,6 +15,10 @@ import {
   IconButton,
   Checkbox,
   FormControlLabel,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material'
 import {
   Visibility,
@@ -22,13 +26,15 @@ import {
   AccountCircle,
   Lock,
   Business,
+  Badge,
 } from '@mui/icons-material'
 import { AuthContext } from '../context/AuthContext'
 
 const Login = () => {
   const [credentials, setCredentials] = useState({
     username: '',
-    password: ''
+    password: '',
+    role: 'admin' // Default role
   })
   const [showPassword, setShowPassword] = useState(false)
   const [savePassword, setSavePassword] = useState(false)
@@ -42,8 +48,8 @@ const Login = () => {
   useEffect(() => {
     const savedCredentials = localStorage.getItem('savedLoginCredentials')
     if (savedCredentials) {
-      const { username, password } = JSON.parse(savedCredentials)
-      setCredentials({ username, password })
+      const { username, password, role } = JSON.parse(savedCredentials)
+      setCredentials({ username, password, role: role || 'admin' })
       setSavePassword(true)
     }
   }, [])
@@ -63,17 +69,37 @@ const Login = () => {
   }
 
   const handleInputChange = (e) => {
-    const newCredentials = {
-      ...credentials,
-      [e.target.name]: e.target.value
+    const { name, value } = e.target
+    
+    // Auto-fill username based on role selection
+    if (name === 'role') {
+      const roleCredentials = {
+        admin: { username: 'admin', password: 'admin123' },
+        manager: { username: 'manager', password: 'manager123' },
+        team_member: { username: 'teammember', password: 'team123' },
+        client: { username: 'client', password: 'client123' }
+      }
+      
+      const newCredentials = {
+        ...credentials,
+        role: value,
+        username: roleCredentials[value]?.username || '',
+        password: roleCredentials[value]?.password || ''
+      }
+      setCredentials(newCredentials)
+    } else {
+      const newCredentials = {
+        ...credentials,
+        [name]: value
+      }
+      setCredentials(newCredentials)
     }
-    setCredentials(newCredentials)
     
     // Clear error when user starts typing
     if (error) setError('')
     
     // If user clears the fields and savePassword is checked, uncheck it
-    if (savePassword && (!newCredentials.username || !newCredentials.password)) {
+    if (savePassword && (!credentials.username || !credentials.password)) {
       setSavePassword(false)
     }
   }
@@ -214,6 +240,123 @@ const Login = () => {
                     },
                   }}
                 />
+              </Box>
+
+              {/* Role/Category Selection */}
+              <Box sx={{ mb: 3 }}>
+                <FormControl fullWidth variant="outlined">
+                  <InputLabel 
+                    sx={{
+                      color: '#888888',
+                      '&.Mui-focused': {
+                        color: '#10a37f',
+                      },
+                    }}
+                  >
+                    Role/Category
+                  </InputLabel>
+                  <Select
+                    name="role"
+                    value={credentials.role}
+                    onChange={handleInputChange}
+                    disabled={loading}
+                    label="Role/Category"
+                    startAdornment={
+                      <InputAdornment position="start">
+                        <Badge sx={{ color: '#888888', mr: 1 }} />
+                      </InputAdornment>
+                    }
+                    sx={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                      color: '#10a37f',
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'rgba(255, 255, 255, 0.2)',
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'rgba(255, 255, 255, 0.3)',
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#10a37f',
+                      },
+                      '& .MuiSvgIcon-root': {
+                        color: '#888888',
+                      },
+                    }}
+                    MenuProps={{
+                      PaperProps: {
+                        sx: {
+                          backgroundColor: 'rgba(26, 26, 26, 0.95)',
+                          backdropFilter: 'blur(20px)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          '& .MuiMenuItem-root': {
+                            color: '#ffffff',
+                            '&:hover': {
+                              backgroundColor: 'rgba(16, 163, 127, 0.1)',
+                            },
+                            '&.Mui-selected': {
+                              backgroundColor: 'rgba(16, 163, 127, 0.2)',
+                              '&:hover': {
+                                backgroundColor: 'rgba(16, 163, 127, 0.3)',
+                              },
+                            },
+                          },
+                        },
+                      },
+                    }}
+                  >
+                    <MenuItem value="admin">
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                          👑 Admin
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#888888' }}>
+                          - Full System Access
+                        </Typography>
+                      </Box>
+                    </MenuItem>
+                    <MenuItem value="manager">
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                          📊 Manager
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#888888' }}>
+                          - Project & Team Management
+                        </Typography>
+                      </Box>
+                    </MenuItem>
+                    <MenuItem value="team_member">
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                          👨‍💻 Team Member
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#888888' }}>
+                          - Task Access & Updates
+                        </Typography>
+                      </Box>
+                    </MenuItem>
+                    <MenuItem value="client">
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                          👤 Client
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#888888' }}>
+                          - Limited Read-Only Access
+                        </Typography>
+                      </Box>
+                    </MenuItem>
+                  </Select>
+                </FormControl>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: '#666666',
+                    fontSize: '0.75rem',
+                    mt: 0.5,
+                    display: 'block',
+                  }}
+                >
+                  💡 Selecting a role will auto-fill credentials for demo
+                </Typography>
               </Box>
 
               <Box sx={{ mb: 4 }}>
@@ -358,21 +501,62 @@ const Login = () => {
             sx={{
               color: '#888888',
               textAlign: 'center',
-              mb: 1,
+              mb: 2,
+              fontWeight: 600,
             }}
           >
-            Demo Credentials:
+            Demo Credentials by Role:
           </Typography>
-          <Typography
-            variant="body2"
-            sx={{
-              color: '#10a37f',
-              textAlign: 'center',
-              fontFamily: 'monospace',
-            }}
-          >
-            Username: admin | Password: admin123
-          </Typography>
+          
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: '#10a37f',
+                  fontFamily: 'monospace',
+                  fontSize: '0.8rem',
+                  mb: 0.5,
+                }}
+              >
+                👑 Admin: admin / admin123
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: '#10a37f',
+                  fontFamily: 'monospace',
+                  fontSize: '0.8rem',
+                }}
+              >
+                📊 Manager: manager / manager123
+              </Typography>
+            </Box>
+            
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: '#10a37f',
+                  fontFamily: 'monospace',
+                  fontSize: '0.8rem',
+                  mb: 0.5,
+                }}
+              >
+                👨‍💻 Team: teammember / team123
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: '#10a37f',
+                  fontFamily: 'monospace',
+                  fontSize: '0.8rem',
+                }}
+              >
+                👤 Client: client / client123
+              </Typography>
+            </Box>
+          </Box>
         </Paper>
       </Container>
     </Box>

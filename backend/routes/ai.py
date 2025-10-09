@@ -1,5 +1,7 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime
+import mysql.connector
+from config import Config
 
 ai_bp = Blueprint('ai', __name__)
 
@@ -10,12 +12,14 @@ from services.deepseek_service import DeepseekService
 from services.ai_provider_service import AIProviderService
 from services.enhanced_ai_service import EnhancedAIService
 from services.rl_ai_service import ReinforcementLearningAI
+from services.employee_analyst_service import EmployeeAnalystService
 
 ai_service = AICoordinationService()
 deepseek_service = DeepseekService()
 ai_provider_service = AIProviderService()
 enhanced_ai_service = EnhancedAIService()
 rl_ai_service = ReinforcementLearningAI()
+employee_analyst = EmployeeAnalystService()
 
 @ai_bp.route('/providers', methods=['GET'])
 def list_ai_providers():
@@ -94,6 +98,100 @@ def intelligent_search():
         return jsonify(results)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@ai_bp.route('/employee-analysis', methods=['POST'])
+def analyze_employee_performance():
+    """
+    AI-powered employee performance analysis with NLP query understanding
+    
+    Example queries:
+    - "Give me Hamza report about tasks"
+    - "How is John performing on his tasks?"
+    - "Analyze Sarah's task completion rate"
+    - "Which employees have overdue tasks?"
+    """
+    try:
+        data = request.get_json()
+        query = data.get('query', '').strip()
+        
+        if not query:
+            return jsonify({
+                'success': False,
+                'error': 'Query is required. Please ask about an employee, for example: "Give me Hamza report about tasks"'
+            }), 400
+        
+        print(f"🔍 Employee analysis request: '{query}'")
+        
+        # Get database connection for CRM
+        connection = mysql.connector.connect(
+            host='localhost',
+            user='root',
+            password='1111',
+            database='vms',
+            charset='utf8mb4'
+        )
+        cursor = connection.cursor(dictionary=True)
+        
+        try:
+            # Use the new NLP-powered analysis method
+            result = employee_analyst.analyze_employee_from_query(query, cursor)
+            
+            if result['success']:
+                print(f"✅ Employee analysis completed for {result['employee']}")
+                return jsonify({
+                    'success': True,
+                    'query': query,
+                    'employee': result['employee'],
+                    'analysis': result['analysis'],
+                    'performance_data': result['performance_data'],
+                    'parsed_query': result.get('parsed_query', {}),
+                    'metadata': {
+                        'cached': result.get('cached', False),
+                        'total_tasks_found': result.get('total_tasks_found', 0),
+                        'timestamp': datetime.now().isoformat(),
+                        'nlp_processing': 'enabled'
+                    }
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': result['error'],
+                    'suggestions': result.get('suggestions', []),
+                    'parsed_query': result.get('parsed_query', {})
+                }), 404
+                
+        finally:
+            cursor.close()
+            connection.close()
+            
+    except mysql.connector.Error as db_error:
+        print(f"❌ Database error in employee analysis: {db_error}")
+        return jsonify({
+            'success': False,
+            'error': f'Database connection error: {str(db_error)}'
+        }), 500
+        
+    except Exception as e:
+        print(f"❌ Error in employee analysis endpoint: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Analysis failed: {str(e)}'
+        }), 500
+
+@ai_bp.route('/employee-analysis/clear-cache', methods=['POST'])
+def clear_employee_cache():
+    """Clear the employee performance analysis cache"""
+    try:
+        employee_analyst.clear_cache()
+        return jsonify({
+            'success': True,
+            'message': 'Employee performance cache cleared successfully'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @ai_bp.route('/search/chat', methods=['POST'])
 def search_chat():
@@ -241,18 +339,82 @@ def get_popular_queries():
 @ai_bp.route('/chat', methods=['POST'])
 def chat_with_ai():
     """
-    Chat interface for AI agent
+    Enhanced chat interface for AI agent with intelligent employee analysis capabilities
     """
     data = request.get_json()
-    message = data.get('message')
+    message = data.get('message', '').strip()
+    context = data.get('context', {})
     
     if not message:
         return jsonify({'error': 'Message is required'}), 400
     
     try:
+        print(f"💬 Chat message: {message}")
+        
+        # Check if this is an employee analysis request using basic keyword detection
+        message_lower = message.lower()
+        employee_keywords = ['report', 'performance', 'tasks', 'analyze', 'how is', 'status of', 'productivity', 'give me']
+        
+        # Simple pattern matching for employee analysis
+        is_employee_query = any(keyword in message_lower for keyword in employee_keywords)
+        
+        if is_employee_query:
+            print(f"🔍 Detected potential employee analysis request")
+            
+            # Get database connection and try employee analysis
+            try:
+                connection = mysql.connector.connect(
+                    host='localhost',
+                    user='root',
+                    password='1111',
+                    database='vms',
+                    charset='utf8mb4'
+                )
+                cursor = connection.cursor(dictionary=True)
+                
+                # Use the new NLP-powered analysis method
+                result = employee_analyst.analyze_employee_from_query(message, cursor)
+                
+                cursor.close()
+                connection.close()
+                
+                if result['success']:
+                    return jsonify({
+                        'response': result['analysis'],
+                        'type': 'employee_analysis',
+                        'employee': result['employee'],
+                        'performance_data': result['performance_data'],
+                        'parsed_query': result.get('parsed_query', {}),
+                        'nlp_processing': True
+                    })
+                else:
+                    # If employee analysis failed, provide helpful guidance
+                    if 'suggestions' in result:
+                        response = f"I couldn't find data for that employee. {result['error']}"
+                    else:
+                        response = f"I understand you're asking about employee performance, but {result['error']}"
+                    
+                    return jsonify({
+                        'response': response,
+                        'type': 'employee_analysis_failed',
+                        'suggestions': result.get('suggestions', []),
+                        'parsed_query': result.get('parsed_query', {})
+                    })
+                        
+            except mysql.connector.Error as db_error:
+                print(f"❌ Database error in chat: {db_error}")
+                response = ai_service.chat(f"I'm having trouble accessing the employee database right now. Please try again later.")
+                return jsonify({'response': response, 'type': 'database_error'})
+        
+        # Regular AI chat for non-employee queries
         response = ai_service.chat(message)
-        return jsonify({'response': response})
+        return jsonify({
+            'response': response,
+            'type': 'general_chat'
+        })
+        
     except Exception as e:
+        print(f"❌ Error in chat endpoint: {e}")
         return jsonify({'error': str(e)}), 500
 
 @ai_bp.route('/suggestions', methods=['GET'])

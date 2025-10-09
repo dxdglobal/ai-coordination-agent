@@ -410,7 +410,7 @@ class Notification(db.Model):
     type = db.Column(db.String(50), default='info')  # info, warning, error, success
     read = db.Column(db.Boolean, default=False)
     action_url = db.Column(db.String(500))  # Optional action link
-    metadata = db.Column(db.JSON)  # Additional data
+    extra_data = db.Column(db.JSON)  # Additional data (renamed from metadata)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     read_at = db.Column(db.DateTime)
     
@@ -427,7 +427,7 @@ class Notification(db.Model):
             'type': self.type,
             'read': self.read,
             'action_url': self.action_url,
-            'metadata': self.metadata,
+            'extra_data': self.extra_data,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'read_at': self.read_at.isoformat() if self.read_at else None,
             'task_id': self.task_id,

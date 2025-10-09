@@ -618,3 +618,148 @@ async def add_task_dependency(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to add task dependency: {str(e)}"
         )
+
+@router.post(
+    "/search",
+    summary="Search tasks",
+    description="Search tasks with filters similar to projects API"
+)
+async def search_tasks(
+    request: Dict[str, Any],
+    db: Session = Depends(get_database_session)
+):
+    """
+    Search tasks with various filters.
+    
+    Body parameters:
+    - **status**: Filter by status
+    - **priority**: Filter by priority
+    - **assignee**: Filter by assignee name
+    - **project_id**: Filter by project ID
+    - **title**: Search in task title
+    - **limit**: Number of results to return (default: 50)
+    - **offset**: Number of results to skip (default: 0)
+    - **sort_by**: Field to sort by (default: 'id')
+    - **sort_order**: Sort order (ASC/DESC, default: 'DESC')
+    """
+    try:
+        logger.info(f"Searching tasks with filters: {request}")
+        
+        # Extract filters from request
+        status_filter = request.get('status')
+        priority = request.get('priority')
+        assignee = request.get('assignee')
+        project_id = request.get('project_id')
+        title_search = request.get('title')
+        limit = request.get('limit', 50)
+        offset = request.get('offset', 0)
+        sort_by = request.get('sort_by', 'id')
+        sort_order = request.get('sort_order', 'DESC')
+        
+        # Build filters dict
+        filters = {}
+        if status_filter:
+            filters['status'] = status_filter
+        if priority:
+            filters['priority'] = priority
+        if assignee:
+            filters['assignee'] = assignee
+        if project_id:
+            filters['project_id'] = project_id
+        if title_search:
+            filters['search'] = title_search
+        
+        service = TaskService(db)
+        
+        # Get tasks with pagination
+        page = (offset // limit) + 1
+        tasks, total_count = service.get_tasks_paginated(
+            page=page,
+            size=limit,
+            filters=filters
+        )
+        
+        return {
+            "success": True,
+            "tasks": tasks,
+            "total": total_count,
+            "limit": limit,
+            "offset": offset
+        }
+        
+    except Exception as e:
+        logger.error(f"Error searching tasks: {e}")
+        return {
+            "success": False,
+            "error": f"Failed to search tasks: {str(e)}",
+            "tasks": [],
+            "total": 0
+        }
+
+@router.get(
+    "/stats",
+    summary="Get task statistics",
+    description="Get task statistics similar to projects API"
+)
+async def get_task_stats(
+    db: Session = Depends(get_database_session)
+):
+    """
+    Get task statistics including counts by status and priority.
+    """
+    try:
+        logger.info("Getting task statistics")
+        
+        service = TaskService(db)
+        
+        # Get all tasks to calculate stats
+        all_tasks, total_count = service.get_tasks_paginated(
+            page=1,
+            size=10000,  # Get all tasks
+            filters={}
+        )
+        
+        # Calculate statistics
+        stats = {
+            "total_tasks": total_count,
+            "tasks_by_status": {},
+            "tasks_by_priority": {},
+            "active_tasks": 0,
+            "completed_tasks": 0,
+            "overdue_tasks": 0
+        }
+        
+        # Count by status and priority
+        for task in all_tasks:
+            # Status counts
+            status = task.get('status', 'unknown')
+            stats["tasks_by_status"][status] = stats["tasks_by_status"].get(status, 0) + 1
+            
+            # Priority counts  
+            priority = task.get('priority', 'unknown')
+            stats["tasks_by_priority"][priority] = stats["tasks_by_priority"].get(priority, 0) + 1
+            
+            # Active tasks (not done or cancelled)
+            if status not in ['done', 'cancelled']:
+                stats["active_tasks"] += 1
+            
+            # Completed tasks
+            if status == 'done':
+                stats["completed_tasks"] += 1
+            
+            # Overdue tasks (you can implement this logic based on due_date)
+            if task.get('is_overdue', False):
+                stats["overdue_tasks"] += 1
+        
+        return {
+            "success": True,
+            "stats": stats
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting task statistics: {e}")
+        return {
+            "success": False,
+            "error": f"Failed to get task statistics: {str(e)}",
+            "stats": {}
+        }

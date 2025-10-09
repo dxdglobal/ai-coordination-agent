@@ -40,13 +40,13 @@ def create_project():
     return jsonify(project.to_dict()), 201
 
 @api_bp.route('/projects/<int:project_id>', methods=['GET'])
-
+@client_access_required
 def get_project(project_id):
     project = Project.query.get_or_404(project_id)
     return jsonify(project.to_dict())
 
 @api_bp.route('/projects/<int:project_id>', methods=['PUT'])
-
+@manager_or_admin_required
 def update_project(project_id):
     project = Project.query.get_or_404(project_id)
     data = request.get_json()
@@ -73,7 +73,7 @@ def delete_project(project_id):
 
 # Tasks endpoints
 @api_bp.route('/tasks', methods=['GET'])
-
+@team_access_required
 def get_tasks():
     # Support filtering by project, status, assignee
     project_id = request.args.get('project_id')
@@ -104,7 +104,7 @@ def get_tasks():
     return jsonify([task.to_dict() for task in tasks])
 
 @api_bp.route('/tasks', methods=['POST'])
-
+@team_access_required
 def create_task():
     data = request.get_json()
     
@@ -138,7 +138,7 @@ def create_task():
     return jsonify(task_dict), 201
 
 @api_bp.route('/tasks/<int:task_id>', methods=['GET'])
-
+@team_access_required
 def get_task(task_id):
     task = Task.query.get_or_404(task_id)
     return jsonify(task.to_dict())
@@ -368,128 +368,6 @@ def get_overdue_tasks_semantic():
         })
     except Exception as e:
         return jsonify({'error': f'Search failed: {str(e)}'}), 500
-
-@api_bp.route('/tasks/search', methods=['POST'])
-def search_tasks():
-    """Search tasks with filters similar to projects API"""
-    data = request.get_json()
-    
-    try:
-        # Extract filters from request
-        status_filter = data.get('status')
-        priority = data.get('priority')
-        assignee = data.get('assignee')
-        project_id = data.get('project_id')
-        title_search = data.get('title')
-        limit = data.get('limit', 50)
-        offset = data.get('offset', 0)
-        sort_by = data.get('sort_by', 'id')
-        sort_order = data.get('sort_order', 'DESC')
-        
-        # Build query
-        query = Task.query
-        
-        # Apply filters
-        if status_filter:
-            query = query.filter(Task.status == TaskStatus(status_filter))
-        if priority:
-            query = query.filter(Task.priority == Priority(priority))
-        if assignee:
-            query = query.filter(Task.assignee.contains(assignee))
-        if project_id:
-            query = query.filter(Task.project_id == project_id)
-        if title_search:
-            query = query.filter(or_(
-                Task.title.contains(title_search),
-                Task.description.contains(title_search)
-            ))
-        
-        # Apply sorting
-        if sort_by and hasattr(Task, sort_by):
-            sort_column = getattr(Task, sort_by)
-            if sort_order.upper() == 'DESC':
-                query = query.order_by(sort_column.desc())
-            else:
-                query = query.order_by(sort_column.asc())
-        
-        # Get total count
-        total_count = query.count()
-        
-        # Apply pagination
-        tasks = query.offset(offset).limit(limit).all()
-        
-        # Convert to dicts
-        task_dicts = [task.to_dict() for task in tasks]
-        
-        return jsonify({
-            "success": True,
-            "tasks": task_dicts,
-            "total": total_count,
-            "limit": limit,
-            "offset": offset
-        })
-        
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": f"Failed to search tasks: {str(e)}",
-            "tasks": [],
-            "total": 0
-        })
-
-@api_bp.route('/tasks/stats', methods=['GET'])
-def get_task_stats():
-    """Get task statistics similar to projects API"""
-    try:
-        # Get all tasks
-        all_tasks = Task.query.all()
-        total_count = len(all_tasks)
-        
-        # Calculate statistics
-        stats = {
-            "total_tasks": total_count,
-            "tasks_by_status": {},
-            "tasks_by_priority": {},
-            "active_tasks": 0,
-            "completed_tasks": 0,
-            "overdue_tasks": 0
-        }
-        
-        # Count by status and priority
-        for task in all_tasks:
-            # Status counts
-            status = task.status.value if task.status else 'unknown'
-            stats["tasks_by_status"][status] = stats["tasks_by_status"].get(status, 0) + 1
-            
-            # Priority counts  
-            priority = task.priority.value if task.priority else 'unknown'
-            stats["tasks_by_priority"][priority] = stats["tasks_by_priority"].get(priority, 0) + 1
-            
-            # Active tasks (not done or cancelled)
-            if status not in ['done', 'cancelled']:
-                stats["active_tasks"] += 1
-            
-            # Completed tasks
-            if status == 'done':
-                stats["completed_tasks"] += 1
-            
-            # Overdue tasks (check if end_time is past and not done)
-            if (task.end_time and 
-                task.end_time < datetime.utcnow() and 
-                status not in ['done', 'cancelled']):
-                stats["overdue_tasks"] += 1
-        
-        return jsonify({
-            "success": True,
-            "stats": stats
-        })
-        
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": f"Failed to get task statistics: {str(e)}",
-            "stats": {}
-        })
 
 @api_bp.route('/tasks/search/high-priority', methods=['GET'])
 def get_high_priority_tasks_semantic():
