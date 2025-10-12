@@ -1072,21 +1072,41 @@ def find_employee_by_name(name):
     if not employees:
         return None
     
+    def normalize_turkish(text):
+        """Normalize Turkish characters to basic Latin characters"""
+        if not text:
+            return ""
+        turkish_chars = {
+            'İ': 'I', 'ı': 'i', 'Ğ': 'G', 'ğ': 'g', 'Ü': 'U', 'ü': 'u',
+            'Ş': 'S', 'ş': 's', 'Ö': 'O', 'ö': 'o', 'Ç': 'C', 'ç': 'c'
+        }
+        result = text
+        for turkish_char, latin_char in turkish_chars.items():
+            result = result.replace(turkish_char, latin_char)
+        return result
+    
     name_lower = name.lower().strip()
+    name_normalized = normalize_turkish(name_lower)
     name_parts = name_lower.split()
+    name_parts_normalized = name_normalized.split()
     
-    print(f"🔍 Searching for employee: '{name}' (parts: {name_parts})")
+    print(f"🔍 Searching for employee: '{name}' (normalized: '{name_normalized}')")
     
-    # Try exact matches first (full name, first name, last name)
+    # Try exact matches first (full name, first name, last name) - both original and normalized
     for employee in employees:
         employee_first = employee.get('firstname', '').lower()
         employee_last = employee.get('lastname', '').lower() 
         employee_full = employee.get('full_name', '').lower()
         
-        # Exact matches
-        if (name_lower == employee_first or 
-            name_lower == employee_last or 
-            name_lower == employee_full):
+        # Normalize employee names too
+        employee_first_norm = normalize_turkish(employee_first)
+        employee_last_norm = normalize_turkish(employee_last)
+        employee_full_norm = normalize_turkish(employee_full)
+        
+        # Exact matches (original and normalized)
+        if (name_lower == employee_first or name_normalized == employee_first_norm or
+            name_lower == employee_last or name_normalized == employee_last_norm or 
+            name_lower == employee_full or name_normalized == employee_full_norm):
             print(f"✅ Exact match found: {employee['full_name']}")
             return employee
     
@@ -1094,19 +1114,25 @@ def find_employee_by_name(name):
     if len(name_parts) >= 2:
         first_part = name_parts[0]
         last_part = name_parts[-1]  # Take last part as surname
+        first_part_norm = name_parts_normalized[0] if name_parts_normalized else first_part
+        last_part_norm = name_parts_normalized[-1] if name_parts_normalized else last_part
         
         for employee in employees:
             employee_first = employee.get('firstname', '').lower()
             employee_last = employee.get('lastname', '').lower()
+            employee_first_norm = normalize_turkish(employee_first)
+            employee_last_norm = normalize_turkish(employee_last)
             
-            # Match first and last name parts
-            if (first_part == employee_first and last_part == employee_last):
+            # Match first and last name parts (original and normalized)
+            if ((first_part == employee_first or first_part_norm == employee_first_norm) and 
+                (last_part == employee_last or last_part_norm == employee_last_norm)):
                 print(f"✅ Full name match found: {employee['full_name']}")
                 return employee
             
-            # Match first name and partial last name
-            elif (first_part == employee_first and 
-                  (last_part in employee_last or employee_last in last_part)):
+            # Match first name and partial last name (original and normalized)
+            elif ((first_part == employee_first or first_part_norm == employee_first_norm) and 
+                  (last_part in employee_last or employee_last in last_part or
+                   last_part_norm in employee_last_norm or employee_last_norm in last_part_norm)):
                 print(f"✅ Partial match found: {employee['full_name']}")
                 return employee
     
@@ -1116,15 +1142,26 @@ def find_employee_by_name(name):
         employee_last = employee.get('lastname', '').lower()
         employee_full = employee.get('full_name', '').lower()
         
+        # Normalize employee names
+        employee_first_norm = normalize_turkish(employee_first)
+        employee_last_norm = normalize_turkish(employee_last)
+        employee_full_norm = normalize_turkish(employee_full)
+        
         if len(name_parts) == 1:
             name_part = name_parts[0]
+            name_part_norm = name_parts_normalized[0] if name_parts_normalized else name_part
+            
+            # Check contains matches (original and normalized)
             if (name_part in employee_first or employee_first in name_part or
-                name_part in employee_last or employee_last in name_part):
+                name_part_norm in employee_first_norm or employee_first_norm in name_part_norm or
+                name_part in employee_last or employee_last in name_part or
+                name_part_norm in employee_last_norm or employee_last_norm in name_part_norm):
                 print(f"✅ Contains match found: {employee['full_name']}")
                 return employee
         else:
-            # For multi-word queries, check if all parts are contained
-            if all(part in employee_full for part in name_parts):
+            # For multi-word queries, check if all parts are contained (original and normalized)
+            if (all(part in employee_full for part in name_parts) or
+                all(part in employee_full_norm for part in name_parts_normalized)):
                 print(f"✅ Multi-word contains match found: {employee['full_name']}")
                 return employee
     

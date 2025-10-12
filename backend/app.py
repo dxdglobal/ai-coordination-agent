@@ -22,6 +22,11 @@ def create_app():
             "origins": ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "http://127.0.0.1:5174"],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization"]
+        },
+        r"/tasks/*": {
+            "origins": ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "http://127.0.0.1:5174"],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"]
         }
     })
     
@@ -29,16 +34,24 @@ def create_app():
     from routes.api import api_bp
     from routes.integrations import integrations_bp
     from routes.ai import ai_bp
+    from routes.ai_tasks import ai_tasks_bp
     from routes.auth import auth_bp
     from routes.projects_api import projects_bp
     from routes.crm_tasks_api import crm_tasks_api
+    from routes.employee_overdue_api import employee_overdue_api
+    from tasks.routes.task_routes import task_bp
+    from task_management.rag_routes import rag_bp
     
     app.register_blueprint(api_bp, url_prefix='/api')
     app.register_blueprint(integrations_bp, url_prefix='/integrations')
     app.register_blueprint(ai_bp, url_prefix='/ai')
+    app.register_blueprint(ai_tasks_bp, url_prefix='/api')
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(projects_bp, url_prefix='/api/projects')
     app.register_blueprint(crm_tasks_api, url_prefix='/api')
+    app.register_blueprint(employee_overdue_api)
+    app.register_blueprint(task_bp, url_prefix='/tasks')
+    app.register_blueprint(rag_bp)  # RAG routes at /ai/*
     
     # Health check endpoint
     @app.route('/health')

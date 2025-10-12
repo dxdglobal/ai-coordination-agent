@@ -29,7 +29,7 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # External API Keys
-    OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+    OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY') or 'your-openai-api-key-here'
     ZENDESK_API_TOKEN = os.environ.get('ZENDESK_API_TOKEN')
     ZENDESK_DOMAIN = os.environ.get('ZENDESK_DOMAIN')
     ZENDESK_EMAIL = os.environ.get('ZENDESK_EMAIL')
@@ -40,7 +40,7 @@ class Config:
             "credential_name": "Main OpenAI Config",
             "credential_type": "openai",
             "description": "OpenAI API configuration",
-            "openai_api_key": "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",
+            "openai_api_key": os.environ.get('OPENAI_API_KEY') or 'your-openai-api-key-here',
             "openai_model": "gpt-4",
             "openai_organization": None,
             "environment": "production"

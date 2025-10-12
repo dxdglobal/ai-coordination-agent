@@ -911,18 +911,7 @@ const Tasks = () => {
                 </CardContent>
               </Card>
             ) : (
-              <Card sx={{ textAlign: 'center', py: 8, width: '100%' }}>
-                <CardContent>
-                  <Psychology sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                  <Typography variant="h6" color="text.secondary" gutterBottom>
-                    Select a task from semantic search
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Use the semantic search panel to find tasks with natural language,
-                    then click on a task to view its details here.
-                  </Typography>
-                </CardContent>
-              </Card>
+             <></>
             )}
           </Box>
         )}

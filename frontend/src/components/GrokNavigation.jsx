@@ -41,6 +41,7 @@ const GrokNavigation = () => {
 
   const menuItems = [
     { title: 'RL Chat', path: '/rl-chat', icon: <Psychology /> },
+    { title: 'AI Coordinator', path: '/ai-coordinator', icon: <SmartToy /> },
     { title: 'Dashboard', path: '/dashboard', icon: <Dashboard /> },
     { title: 'Projects', path: '/projects', icon: <Folder /> },
     { title: 'Tasks', path: '/tasks', icon: <Assignment /> },

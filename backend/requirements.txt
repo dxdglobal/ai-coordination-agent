@@ -38,13 +38,8 @@ chromadb==0.4.18
 sentence-transformers==2.2.2
 
 # Communication Services (Optional)
-twilio==8.10.3                    # WhatsApp/SMS
 python-telegram-bot==20.7         # Telegram
 yagmail==0.15.293                 # Email
-
-# Audio Processing (Optional)
-pydub==0.25.1                     # Audio manipulation
-SpeechRecognition==3.10.0         # Speech-to-text
 
 # Development & Testing
 pytest==7.4.0

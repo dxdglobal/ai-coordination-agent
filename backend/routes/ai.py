@@ -1,6 +1,5 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime
-import mysql.connector
 from config import Config
 
 ai_bp = Blueprint('ai', __name__)
@@ -102,10 +101,11 @@ def intelligent_search():
 @ai_bp.route('/employee-analysis', methods=['POST'])
 def analyze_employee_performance():
     """
-    AI-powered employee performance analysis with NLP query understanding
+    AI-powered employee performance analysis with NLP query understanding and conversation memory
     
     Example queries:
     - "Give me Hamza report about tasks"
+    - "Show me overdue tasks for Hamza" (shows only overdue tasks)
     - "How is John performing on his tasks?"
     - "Analyze Sarah's task completion rate"
     - "Which employees have overdue tasks?"
@@ -113,6 +113,7 @@ def analyze_employee_performance():
     try:
         data = request.get_json()
         query = data.get('query', '').strip()
+        session_id = data.get('session_id', 'default')
         
         if not query:
             return jsonify({
@@ -120,36 +121,68 @@ def analyze_employee_performance():
                 'error': 'Query is required. Please ask about an employee, for example: "Give me Hamza report about tasks"'
             }), 400
         
-        print(f"🔍 Employee analysis request: '{query}'")
+        print(f"🔍 Employee analysis request: '{query}' (Session: {session_id})")
         
-        # Get database connection for CRM
-        connection = mysql.connector.connect(
-            host='localhost',
-            user='root',
-            password='1111',
-            database='vms',
-            charset='utf8mb4'
-        )
-        cursor = connection.cursor(dictionary=True)
-        
+        # Use the integrated database approach with conversation memory
         try:
-            # Use the new NLP-powered analysis method
-            result = employee_analyst.analyze_employee_from_query(query, cursor)
+            # Use the new NLP-powered analysis method with session support
+            result = employee_analyst.analyze_employee('', query, session_id)
             
             if result['success']:
-                print(f"✅ Employee analysis completed for {result['employee']}")
-                return jsonify({
-                    'success': True,
-                    'query': query,
-                    'employee': result['employee'],
-                    'analysis': result['analysis'],
-                    'performance_data': result['performance_data'],
-                    'parsed_query': result.get('parsed_query', {}),
+                # Check if this is a greeting response
+                if result.get('type') == 'casual_greeting':
+                    print(f"✅ Greeting response generated")
+                    return jsonify({
+                        'success': True,
+                        'type': 'casual_greeting',
+                        'response': result['response'],
+                        'query': query,
+                        'session_id': session_id,
+                        'suggestions': result.get('suggestions', [])
+                    })
+                # Check if this is a dual perspective analysis
+                elif result.get('analysis_type') == 'dual_perspective':
+                    print(f"✅ Dual perspective analysis completed")
+                    return jsonify({
+                        'success': True,
+                        'type': 'dual_perspective',
+                        'query': query,
+                        'analysis': result['analysis'],
+                        'task_perspective': result.get('task_perspective', {}),
+                        'employee_perspective': result.get('employee_perspective', {}),
+                        'verification': result.get('verification', {}),
+                        'confidence_score': result.get('confidence_score', 0),
+                        'session_id': session_id,
+                        'suggestions': result.get('suggestions', [])
+                    })
+                # Check if this is a general task query
+                elif result.get('query_type') == 'general_task_query':
+                    print(f"✅ General task query completed")
+                    return jsonify({
+                        'success': True,
+                        'type': 'general_task_query',
+                        'query': query,
+                        'analysis': result['analysis'],
+                        'session_id': session_id,
+                        'suggestions': result.get('suggestions', [])
+                    })
+                else:
+                    # Standard employee analysis
+                    print(f"✅ Employee analysis completed for {result.get('employee', 'Unknown')}")
+                    return jsonify({
+                        'success': True,
+                        'query': query,
+                        'employee': result['employee'],
+                        'analysis': result['analysis'],
+                        'performance_data': result['performance_data'],
+                        'query_analysis': result.get('query_analysis', {}),
+                        'session_id': session_id,
                     'metadata': {
                         'cached': result.get('cached', False),
-                        'total_tasks_found': result.get('total_tasks_found', 0),
                         'timestamp': datetime.now().isoformat(),
-                        'nlp_processing': 'enabled'
+                        'nlp_processing': 'enabled',
+                        'conversation_memory': 'enabled',
+                        'database': 'integrated_mysql'
                     }
                 })
             else:
@@ -157,20 +190,17 @@ def analyze_employee_performance():
                     'success': False,
                     'error': result['error'],
                     'suggestions': result.get('suggestions', []),
-                    'parsed_query': result.get('parsed_query', {})
+                    'query_analysis': result.get('query_analysis', {}),
+                    'session_id': session_id
                 }), 404
                 
-        finally:
-            cursor.close()
-            connection.close()
+        except Exception as e:
+            print(f"❌ Analysis error: {e}")
+            return jsonify({
+                'success': False,
+                'error': f'Analysis failed: {str(e)}'
+            }), 500
             
-    except mysql.connector.Error as db_error:
-        print(f"❌ Database error in employee analysis: {db_error}")
-        return jsonify({
-            'success': False,
-            'error': f'Database connection error: {str(db_error)}'
-        }), 500
-        
     except Exception as e:
         print(f"❌ Error in employee analysis endpoint: {e}")
         return jsonify({
@@ -212,6 +242,35 @@ def search_chat():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@ai_bp.route('/test_greeting', methods=['POST'])
+def test_greeting():
+    """Test endpoint for greeting detection"""
+    data = request.get_json()
+    query = data.get('query', '')
+    
+    if not query:
+        return jsonify({'error': 'Query is required'}), 400
+    
+    try:
+        # Test greeting detection directly
+        result = employee_analyst._is_casual_greeting(query)
+        
+        if result:
+            # Test the greeting handler
+            greeting_result = employee_analyst._handle_casual_greeting(query, 'test_session')
+            return jsonify({
+                'is_greeting': True,
+                'greeting_result': greeting_result
+            })
+        else:
+            return jsonify({
+                'is_greeting': False,
+                'message': 'Not detected as a greeting'
+            })
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @ai_bp.route('/analyze', methods=['POST'])
 def analyze_tasks():
     """
@@ -219,12 +278,81 @@ def analyze_tasks():
     """
     data = request.get_json()
     prompt = data.get('prompt', 'You are a coordination agent, follow up all tasks and projects')
+    query = data.get('query', '')  # Support query parameter for Turkish names
     
     try:
-        analysis = ai_service.analyze_workspace(prompt)
-        return jsonify(analysis)
+        # If query parameter is provided, use it for Turkish name analysis
+        if query:
+            # Use the employee analyst service for better Turkish name handling
+            result = employee_analyst.analyze_employee('', query, 'default')
+            return jsonify(result)
+        else:
+            # Original functionality
+            analysis = ai_service.analyze_workspace(prompt)
+            return jsonify(analysis)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': f'AI analysis failed: {str(e)}'}), 500
+
+@ai_bp.route('/unlimited_query', methods=['POST'])
+def unlimited_ai_query():
+    """🤖 AI-POWERED UNLIMITED TASK QUESTIONS - Handle any task-related question using OpenAI"""
+    try:
+        data = request.get_json()
+        if not data or 'query' not in data:
+            return jsonify({'error': 'Query is required'}), 400
+        
+        query = data['query']
+        session_id = data.get('session_id', 'default')
+        
+        print(f"🤖 UNLIMITED AI QUERY: {query}")
+        
+        # Use the AI-powered general task query handler directly
+        result = employee_analyst._handle_general_task_query(query, session_id)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"❌ Error in unlimited AI query: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Unlimited query failed: {str(e)}',
+            'suggestions': [
+                'Try: "Who is assigning these tasks?"',
+                'Try: "Show me all overdue tasks with assignees"',
+                'Try: "Which tasks have the highest priority?"'
+            ]
+        }), 500
+
+@ai_bp.route('/enhanced_nlp_query', methods=['POST'])
+def enhanced_nlp_query():
+    """🚀 ENHANCED NLP + VECTOR DATABASE ANALYSIS - Advanced intent detection and semantic search"""
+    try:
+        data = request.get_json()
+        if not data or 'query' not in data:
+            return jsonify({'error': 'Query is required'}), 400
+        
+        query = data['query']
+        session_id = data.get('session_id', 'default')
+        
+        print(f"🚀 ENHANCED NLP QUERY: {query}")
+        
+        # Use the enhanced NLP analysis pipeline
+        result = employee_analyst.analyze_with_enhanced_nlp(query, session_id)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"❌ Error in enhanced NLP query: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Enhanced NLP query failed: {str(e)}',
+            'suggestions': [
+                'Try: "Show me Hamza\'s AI monitoring tasks"',
+                'Try: "How is John performing this week?"',
+                'Try: "Summarize recent tasks for Sarah"',
+                'Try: "List all completed tasks by Ali"'
+            ]
+        }), 500
 
 @ai_bp.route('/smart_chat', methods=['POST'])
 def smart_chat():

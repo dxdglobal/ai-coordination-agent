@@ -277,73 +277,16 @@ class AdvancedNLPProcessor:
     def build_comprehensive_system_prompt(self) -> str:
         """Build comprehensive system prompt for OpenAI"""
         return """
-        You are an advanced AI assistant for a comprehensive business management system. 
-        You have access to a complete database with multiple tables including:
-        
-        TABLES AVAILABLE:
-        - tblstaff: Employee information (id, name, email, position, department, active status)
-        - tblprojects: Project data (id, name, description, status, client_id, deadline)
-        - tbltasks: Task details (id, name, description, status, priority, project_id, assigned_to)
-        - tblproject_members: Project team assignments (project_id, staff_id, role)
-        - tblclients: Client information (id, company, contact details)
-        - tbldepartments: Department structure
-        - tblcontacts: Contact management
-        - And many more related tables
-        
-        ANALYSIS REQUIREMENTS:
-        1. Analyze the user's intent deeply
-        2. Extract all relevant entities (names, projects, tasks, etc.)
-        3. Determine which tables need to be queried
-        4. Consider conversation history for context
-        5. Provide specific, actionable query instructions
-        
-        RESPONSE FORMAT:
-        Return a JSON object with:
-        {
-            "intent": "primary intent (employee_query, project_query, task_query, etc.)",
-            "sub_intent": "specific sub-intent",
-            "entities": ["list", "of", "extracted", "entities"],
-            "search_terms": ["terms", "to", "search", "for"],
-            "tables_needed": ["table1", "table2"],
-            "query_type": "list|detail|summary|analysis",
-            "confidence": 0.95,
-            "explanation": "Clear explanation of the analysis",
-            "suggested_response_format": "How the response should be formatted"
-        }
-        
-        EXAMPLES:
-        User: "Show me John's projects"
-        Response: {
-            "intent": "employee_projects",
-            "sub_intent": "list_employee_projects", 
-            "entities": ["John"],
-            "search_terms": ["John"],
-            "tables_needed": ["tblstaff", "tblprojects", "tblproject_members"],
-            "query_type": "list",
-            "confidence": 0.95,
-            "explanation": "User wants to see all projects assigned to employee named John",
-            "suggested_response_format": "Simple list of project names"
-        }
-        
-        User: "What tasks are overdue?"
-        Response: {
-            "intent": "task_query",
-            "sub_intent": "overdue_tasks",
-            "entities": ["overdue"],
-            "search_terms": ["overdue", "deadline", "due"],
-            "tables_needed": ["tbltasks", "tblprojects"],
-            "query_type": "list",
-            "confidence": 0.90,
-            "explanation": "User wants to see all tasks that are past their due date",
-            "suggested_response_format": "List of overdue tasks with due dates and assignees"
-        }
-        
-        Always be precise and thorough in your analysis.
+        AI assistant for business data. Analyze queries and return JSON:
+        {"intent": "employee_query", "entities": ["names"], "tables_needed": ["tblstaff"], "query_type": "detail"}
         """
     
     def analyze_prompt_with_openai(self, user_prompt: str, conversation_history: List[Dict]) -> Dict:
         """Use OpenAI to deeply analyze user prompt"""
         try:
+            # Temporary: Force fallback to test Turkish name functionality
+            return self.fallback_analysis(user_prompt)
+            
             # Build context from conversation history
             context_messages = []
             
@@ -354,7 +297,7 @@ class AdvancedNLPProcessor:
             })
             
             # Add conversation history for context
-            for interaction in conversation_history[-5:]:  # Last 5 interactions
+            for interaction in conversation_history[-1:]:  # Last 1 interaction only
                 context_messages.append({
                     "role": "user",
                     "content": interaction['user_message']
@@ -374,7 +317,7 @@ class AdvancedNLPProcessor:
             response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=context_messages,
-                max_tokens=800,
+                max_tokens=200,
                 temperature=0.1
             )
             
@@ -393,34 +336,70 @@ class AdvancedNLPProcessor:
         """Fallback analysis when OpenAI is not available"""
         prompt_lower = user_prompt.lower()
         
+        # Turkish character normalization
+        def normalize_turkish(text):
+            replacements = {
+                'İ': 'i', 'I': 'i', 'ı': 'i', 'Ş': 's', 'ş': 's', 'Ğ': 'g', 'ğ': 'g',
+                'Ü': 'u', 'ü': 'u', 'Ö': 'o', 'ö': 'o', 'Ç': 'c', 'ç': 'c'
+            }
+            for old, new in replacements.items():
+                text = text.replace(old, new)
+            return text.lower()
+        
+        # Common Turkish names for better detection
+        turkish_names = [
+            'ilahe', 'İlahe', 'deniz', 'tuğba', 'begüm', 'damla', 'gülay', 'ihsan', 'yusuf', 'ziya',
+            'hamza', 'ahmet', 'mehmet', 'fatma', 'ayşe', 'mustafa', 'ali', 'zeynep', 'elif', 'emre'
+        ]
+        
+        # Normalize prompt for Turkish name detection
+        normalized_prompt = normalize_turkish(user_prompt)
+        found_turkish_names = []
+        
+        # Check for Turkish names in the prompt
+        words = user_prompt.split()
+        for word in words:
+            for turkish_name in turkish_names:
+                if normalize_turkish(word) == normalize_turkish(turkish_name):
+                    found_turkish_names.append(word)
+                    break
+        
         # Basic intent detection
-        if any(word in prompt_lower for word in ['employee', 'staff', 'worker', 'person']):
+        if found_turkish_names or any(word in prompt_lower for word in ['employee', 'staff', 'worker', 'person', 'report', 'rapor']):
             intent = 'employee_query'
             tables_needed = ['tblstaff']
-        elif any(word in prompt_lower for word in ['project', 'projects']):
+        elif any(word in prompt_lower for word in ['project', 'projects', 'proje']):
             intent = 'project_query' 
             tables_needed = ['tblprojects', 'tblproject_members']
-        elif any(word in prompt_lower for word in ['task', 'tasks', 'assignment']):
+        elif any(word in prompt_lower for word in ['task', 'tasks', 'assignment', 'görev']):
             intent = 'task_query'
             tables_needed = ['tbltasks', 'tblprojects']
         else:
-            intent = 'general_query'
+            intent = 'employee_query' if found_turkish_names else 'general_query'
             tables_needed = ['tblstaff', 'tblprojects', 'tbltasks']
         
-        # Extract potential names/entities
-        words = user_prompt.split()
-        entities = [word for word in words if word[0].isupper() and len(word) > 2]
+        # Extract potential names/entities (including Turkish names)
+        entities = []
+        for word in words:
+            if word[0].isupper() and len(word) > 2:
+                entities.append(word)
+            elif word in found_turkish_names:
+                entities.append(word)
+        
+        # Add found Turkish names to entities
+        entities.extend(found_turkish_names)
+        entities = list(set(entities))  # Remove duplicates
         
         return {
             "intent": intent,
-            "sub_intent": "basic",
+            "sub_intent": "turkish_name_query" if found_turkish_names else "basic",
             "entities": entities,
-            "search_terms": words,
+            "search_terms": words + found_turkish_names,
             "tables_needed": tables_needed,
-            "query_type": "list",
-            "confidence": 0.7,
-            "explanation": f"Fallback analysis for: {user_prompt}",
-            "suggested_response_format": "Simple list format"
+            "query_type": "detail" if found_turkish_names else "list",
+            "confidence": 0.9 if found_turkish_names else 0.7,
+            "explanation": f"Found Turkish names: {found_turkish_names}" if found_turkish_names else f"Fallback analysis for: {user_prompt}",
+            "suggested_response_format": "Detailed employee info" if found_turkish_names else "Simple list format"
         }
 
 # Global chatbot instance
@@ -543,21 +522,64 @@ def generate_employee_response(analysis: Dict, scan_results: Dict, conversation_
     
     # Check if looking for specific employee
     if entities and any(entity.lower() in analysis.get('search_terms', []) for entity in entities):
-        # Specific employee search
+        # Specific employee search with Turkish character support
         target_name = entities[0] if entities else ""
-        matching_employees = [emp for emp in employees 
-                            if target_name.lower() in emp.get('firstname', '').lower() 
-                            or target_name.lower() in emp.get('lastname', '').lower()
-                            or target_name.lower() in emp.get('name', '').lower()]
+        
+        def normalize_turkish(text):
+            """Normalize Turkish characters for better matching"""
+            if not text:
+                return ""
+            replacements = {
+                'İ': 'i', 'I': 'i', 'ı': 'i', 'Ş': 's', 'ş': 's', 'Ğ': 'g', 'ğ': 'g',
+                'Ü': 'u', 'ü': 'u', 'Ö': 'o', 'ö': 'o', 'Ç': 'c', 'ç': 'c'
+            }
+            for old, new in replacements.items():
+                text = text.replace(old, new)
+            return text.lower()
+        
+        normalized_target = normalize_turkish(target_name)
+        
+        matching_employees = []
+        for emp in employees:
+            firstname = normalize_turkish(emp.get('firstname', ''))
+            lastname = normalize_turkish(emp.get('lastname', ''))
+            name = normalize_turkish(emp.get('name', ''))
+            
+            # Check if target name matches any part of the employee name
+            if (normalized_target in firstname or 
+                normalized_target in lastname or 
+                normalized_target in name or
+                firstname in normalized_target or
+                lastname in normalized_target):
+                matching_employees.append(emp)
         
         if matching_employees:
-            emp = matching_employees[0]
-            response = f"👤 **{emp.get('firstname', '')} {emp.get('lastname', '')}**\n"
-            response += f"📧 {emp.get('email', 'No email')}\n"
-            response += f"🏢 {emp.get('role', 'No role specified')}\n"
-            response += f"📱 {emp.get('phonenumber', 'No phone')}\n"
-            
-            # Add project information if available
+            # If only one match, show detailed info
+            if len(matching_employees) == 1:
+                emp = matching_employees[0]
+                response = f"👤 **{emp.get('firstname', '')} {emp.get('lastname', '')}**\n"
+                response += f"📧 {emp.get('email', 'No email')}\n"
+                response += f"🏢 {emp.get('role', 'No role specified')}\n"
+                response += f"📱 {emp.get('phonenumber', 'No phone')}\n"
+                response += f"🆔 Staff ID: {emp.get('staffid', 'N/A')}\n"
+                response += f"📍 Workplace: {emp.get('workplace', 'Not specified')}\n"
+                response += f"💼 Position: {emp.get('job_position', 'Not specified')}\n"
+                response += f"✅ Status: {'Active' if emp.get('active') == 1 else 'Inactive'}\n"
+                
+                # Add project information if available
+                projects = scan_results.get('tblprojects', [])
+                if projects:
+                    response += f"\n📊 Currently working on {len(projects)} project(s)"
+                
+                return response
+            else:
+                # Multiple matches, show list
+                response = f"👥 **Found {len(matching_employees)} employees matching '{target_name}':**\n\n"
+                for i, emp in enumerate(matching_employees, 1):
+                    name = f"{emp.get('firstname', '')} {emp.get('lastname', '')}".strip()
+                    role = emp.get('job_position', emp.get('role', 'No role'))
+                    response += f"{i}. **{name}** - {role}\n"
+                return response
             projects = scan_results.get('tblprojects', [])
             if projects:
                 response += f"\n📊 Currently working on {len(projects)} project(s)"

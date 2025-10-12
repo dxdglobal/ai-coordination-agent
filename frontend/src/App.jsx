@@ -13,6 +13,7 @@ import ChatReal from './pages/ChatReal'
 import ChatGPT from './pages/ChatGPT'
 import RLChat from './pages/RLChat'
 import Integrations from './pages/Integrations'
+import AICoordinator from './pages/AICoordinator'
 import EnhancedChatbot from './components/EnhancedChatbot'
 import { APIProvider } from './context/APIContext'
 import { AuthProvider } from './context/AuthContext'
@@ -417,6 +418,15 @@ const lightTheme = createTheme({
                     <GrokNavigation />
                     <Integrations />
                   </Box>
+                </ThemeProvider>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/ai-coordinator" element={
+              <ProtectedRoute>
+                <ThemeProvider theme={theme}>
+                  <CssBaseline />
+                  <AICoordinator />
                 </ThemeProvider>
               </ProtectedRoute>
             } />

@@ -3,95 +3,17 @@ from flask import Blueprint, request, jsonify
 integrations_bp = Blueprint('integrations', __name__)
 
 # Import here to avoid circular imports
-from services.zendesk_service import ZendeskService
 from services.email_service import EmailService
-from services.voice_service import VoiceService
 from models.models import db, Integration
 
 # Optional imports for services that require external dependencies
-try:
-    from services.whatsapp_service import WhatsAppService
-    whatsapp_service = WhatsAppService()
-except ImportError:
-    whatsapp_service = None
-
 try:
     from services.telegram_service import TelegramService
     telegram_service = TelegramService()
 except ImportError:
     telegram_service = None
 
-zendesk_service = ZendeskService()
 email_service = EmailService()
-voice_service = VoiceService()
-
-# Zendesk Integration
-@integrations_bp.route('/zendesk/tickets', methods=['GET'])
-def get_zendesk_tickets():
-    """Get recent Zendesk tickets"""
-    try:
-        tickets = zendesk_service.get_recent_tickets()
-        return jsonify(tickets)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@integrations_bp.route('/zendesk/chat-history/<ticket_id>', methods=['GET'])
-def get_zendesk_chat_history(ticket_id):
-    """Get chat history for a Zendesk ticket"""
-    try:
-        history = zendesk_service.get_chat_history(ticket_id)
-        return jsonify(history)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-# WhatsApp Integration
-@integrations_bp.route('/whatsapp/send', methods=['POST'])
-def send_whatsapp_message():
-    """Send WhatsApp message"""
-    data = request.get_json()
-    to_number = data.get('to')
-    message = data.get('message')
-    
-    try:
-        result = whatsapp_service.send_message(to_number, message)
-        
-        # Store in database
-        integration = Integration(
-            platform='whatsapp',
-            content=message,
-            recipient=to_number,
-            metadata={'status': 'sent', 'message_id': result.get('sid')}
-        )
-        db.session.add(integration)
-        db.session.commit()
-        
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@integrations_bp.route('/whatsapp/webhook', methods=['POST'])
-def whatsapp_webhook():
-    """Webhook for receiving WhatsApp messages"""
-    data = request.form.to_dict()
-    
-    try:
-        # Process incoming message
-        result = whatsapp_service.handle_incoming_message(data)
-        
-        # Store in database
-        integration = Integration(
-            platform='whatsapp',
-            external_id=data.get('MessageSid'),
-            content=data.get('Body'),
-            sender=data.get('From'),
-            metadata=data
-        )
-        db.session.add(integration)
-        db.session.commit()
-        
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 # Telegram Integration
 @integrations_bp.route('/telegram/send', methods=['POST'])
@@ -166,43 +88,6 @@ def send_email():
         db.session.commit()
         
         return jsonify(result)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-# Voice Integration
-@integrations_bp.route('/voice/transcribe', methods=['POST'])
-def transcribe_voice():
-    """Transcribe voice message"""
-    if 'audio' not in request.files:
-        return jsonify({'error': 'No audio file provided'}), 400
-    
-    audio_file = request.files['audio']
-    
-    try:
-        result = voice_service.transcribe_audio(audio_file)
-        
-        # Store in database
-        integration = Integration(
-            platform='voice',
-            content=result.get('transcription'),
-            metadata={'confidence': result.get('confidence'), 'duration': result.get('duration')}
-        )
-        db.session.add(integration)
-        db.session.commit()
-        
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@integrations_bp.route('/voice/text-to-speech', methods=['POST'])
-def text_to_speech():
-    """Convert text to speech"""
-    data = request.get_json()
-    text = data.get('text')
-    
-    try:
-        result = voice_service.text_to_speech(text)
-        return result  # Returns audio file
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
